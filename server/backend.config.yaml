@@ -1,0 +1,43 @@
+# 后端配置（示例）
+# 说明：请根据你的后端框架（Node.js/Express/Nest 等）读取此文件
+
+app:
+  name: "校园失物招领-backend"
+  env: "development"         # development | test | production
+  host: "0.0.0.0"
+  port: 3000
+  apiPrefix: "/api"
+
+cors:
+  enabled: true
+  origin:
+    - "http://localhost:5173"
+    - "http://localhost:8080"
+    - "http://localhost:3000"
+  credentials: true
+
+database:
+  type: "mongodb"
+  uri: "mongodb://127.0.0.1:27017/found"
+
+auth:
+  jwtSecret: "please_change_me"
+  jwtExpiresIn: "7d"
+
+upload:
+  dir: "uploads"
+  maxFileSizeMB: 10
+  allowedMimeTypes:
+    - "image/jpeg"
+    - "image/png"
+    - "image/webp"
+
+security:
+  bcryptRounds: 10
+  rateLimit:
+    enabled: true
+    windowMs: 900000      # 15分钟
+    max: 200
+
+log:
+  level: "info"         # debug | info | warn | error

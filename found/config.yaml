@@ -1,0 +1,13 @@
+app:
+  name: "校园失物招领"
+  homeSubtitle: "找回每一件重要的小物"
+  loginSubtitle: "登录校园失物招领"
+  registerSubtitle: "加入校园失物招领"
+
+api:
+  baseUrl: "http://localhost:3000"
+  prefix: "/api"
+  uploadPath: "/upload"
+
+publish:
+  maxImages: 3

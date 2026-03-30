@@ -1,0 +1,73 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "校园失物招领"
+      }
+    },
+    {
+      "path": "pages/detail/detail",
+      "style": {
+        "navigationBarTitleText": "详情"
+      }
+    },
+    {
+      "path": "pages/publish/publish",
+      "style": {
+        "navigationBarTitleText": "发布信息"
+      }
+    },
+    {
+      "path": "pages/my/my",
+      "style": {
+        "navigationBarTitleText": "我的发布"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "注册"
+      }
+    },
+    {
+      "path": "pages/admin/items",
+      "style": {
+        "navigationBarTitleText": "管理后台 - 信息管理"
+      }
+    }
+  ],
+  "tabBar": {
+    "custom": true,
+    "color": "#666666",
+    "selectedColor": "#007AFF",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      },
+      {
+        "pagePath": "pages/publish/publish",
+        "text": "发布",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "我的",
+        "iconPath": "static/logo.png",
+        "selectedIconPath": "static/logo.png"
+      }
+    ]
+  }
+}
