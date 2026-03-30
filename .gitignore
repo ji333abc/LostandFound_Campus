@@ -16,6 +16,7 @@ pnpm-debug.log*
 # Environment files
 server/.env
 server/.env.local
+server/.env.server
 server/.env.*.local
 
 # Keep example env files
@@ -34,6 +35,14 @@ found/node_modules/
 found/unpackage/
 found/dist/
 
+# Local test / debug files
+server/1.txt
+
 # Temporary files
 *.tmp
 *.temp
+
+# If these are only local debug/helper files, uncomment as needed
+# set-server-ip.js
+# server/set-admin.js
+# server/AI_CONFIG.md

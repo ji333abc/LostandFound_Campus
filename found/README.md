@@ -1,151 +1,207 @@
-# 校园失物招领（uni-app）
+# 校园失物招领前端（uni-app）
 
-一个基于 uni-app 的校园失物招领前端项目，支持：
+这是本项目的前端部分，基于 uni-app 开发，主要面向校园失物招领场景。
 
-- 用户注册 / 登录
-- 失物信息发布与列表浏览
-- 详情查看、留言互动
+支持的核心功能包括：
+
+- 用户注册、登录、退出登录
+- 失物 / 招领信息发布
+- 信息列表浏览、搜索与详情查看
+- 评论互动
 - 我的发布管理
-- 管理员后台（状态更新、删除）
+- 管理员后台管理
+- 图片上传
+- 与后端 API 联调
 
 ---
 
-## 目录结构
+## 项目结构
 
 ```text
-.
-├─ common/
-│  ├─ request.js        # 请求封装
-│  └─ config.js         # 前端运行时配置（需与 config.yaml 保持同步）
-├─ pages/
-│  ├─ index/            # 首页
-│  ├─ publish/          # 发布页
-│  ├─ detail/           # 详情页
-│  ├─ my/               # 我的
-│  ├─ login/            # 登录
-│  ├─ register/         # 注册
-│  └─ admin/            # 管理后台
-├─ config.yaml          # 可编辑配置（给维护者修改）
-├─ pages.json
+found/
+├─ common/                 # 公共方法与配置
+│  ├─ config.js            # 前端运行时配置
+│  └─ request.js           # 请求封装
+├─ custom-tab-bar/         # 自定义 tabBar
+├─ pages/                  # 页面目录
+├─ static/                 # 静态资源
+├─ tools/                  # 前端辅助脚本
+├─ App.vue
 ├─ main.js
-└─ App.vue
+├─ manifest.json
+├─ pages.json
+├─ uni.scss
+└─ config.yaml             # 维护者查看/同步参考配置
 ```
 
 ---
 
-## 可修改配置
+## 运行环境
 
-你可以在项目根目录的 `config.yaml` 中修改：
+建议使用以下方式开发和运行：
 
-- 应用名称与文案
-- API 地址与前缀
-- 上传接口路径
-- 发布页最大图片数量
-
-示例：
-
-```yaml config.yaml
-app:
-  name: "校园失物招领"
-  homeSubtitle: "找回每一件重要的小物"
-  loginSubtitle: "登录校园失物招领"
-  registerSubtitle: "加入校园失物招领"
-
-api:
-  baseUrl: "http://localhost:3000"
-  prefix: "/api"
-  uploadPath: "/upload"
-
-publish:
-  maxImages: 3
-```
-
-> 注意：uni-app 前端运行时默认不直接解析 yaml。当前项目通过 `common/config.js` 供代码读取，因此请**同步修改** `common/config.js` 中对应值。
-
----
-
-## 接口说明（前端约定）
-
-基础地址：`{baseUrl}{prefix}`，如 `http://localhost:3000/api`
-
-常用接口：
-
-- `POST /auth/login`
-- `POST /auth/register`
-- `GET /items`
-- `POST /items`
-- `GET /items/:id`
-- `PUT /items/:id`
-- `GET /items/:id/comments`
-- `POST /items/:id/comments`
-- `GET /admin/items`
-- `PUT /admin/items/:id/status`
-- `DELETE /admin/items/:id`
-- `POST /upload`（上传）
-
----
-
-## 一键替换服务器地址（上线部署推荐）
-
-为了把本地 `localhost` 快速切换到线上服务器地址，项目已提供脚本：
-
-- 脚本：`tools/set-server-ip.js`
-- 作用：自动更新 `common/config.js` 中的 `APP_CONFIG.api.baseUrl`
-
-在 `found/` 目录执行：
-
-```bash
-node tools/set-server-ip.js 8.134.12.34
-```
-
-默认会设置为：`http://8.134.12.34:3000`
-
-也可以自定义端口：
-
-```bash
-node tools/set-server-ip.js 8.134.12.34 8080
-```
-
-也支持直接传完整 URL：
-
-```bash
-node tools/set-server-ip.js https://api.example.com
-```
-
-执行完成后，重新运行/打包前端即可生效。
-
-> 同时建议把后端 `.env` 中的 `BASE_URL` 改为线上可访问地址，避免 AI 识别等依赖地址的功能出现不一致。
+- HBuilderX（推荐）
+- uni-app 对应开发工具链
+- 已启动的后端服务
 
 ---
 
 ## 本地运行
 
-### 方式一：HBuilderX（推荐）
+### 方式一：HBuilderX
 
-1. 用 HBuilderX 打开项目目录。
-2. 运行到浏览器或小程序模拟器。
-3. 确保后端服务已启动，并与 `config.yaml` / `common/config.js` 中的 API 地址一致。
+1. 使用 HBuilderX 打开 `found/` 目录。
+2. 运行到浏览器、真机或小程序模拟器。
+3. 确认后端服务已经启动。
+4. 确认前端接口地址与后端实际地址一致。
 
-### 方式二：命令行（如已配置 uni-app CLI）
+### 方式二：命令行
 
-按你的 uni-app 工程配置执行对应命令（不同模板命令可能不同）。
+如果你已经安装并配置好 uni-app CLI，也可以按你当前模板支持的方式运行。
+
+---
+
+## 前端配置说明
+
+前端运行时实际读取的是：
+
+- `common/config.js`
+
+当前默认配置关键项如下：
+
+- `baseUrl`: `http://localhost:3000`
+- `prefix`: `/api`
+- `uploadPath`: `/upload`
+- `maxImages`: `3`
+
+接口基础地址会拼接为：
+
+```text
+http://localhost:3000/api
+```
+
+### 关于 `config.yaml`
+
+项目中保留了 `config.yaml`，方便维护者查看和统一管理配置含义。
+
+但需要注意：
+
+> uni-app 前端运行时不会直接读取 `config.yaml`，实际生效的是 `common/config.js`。
+
+所以如果你修改了接口地址，请优先检查：
+
+- `found/common/config.js`
+
+---
+
+## 一键切换服务器地址
+
+如果你部署到了服务器，可以使用项目根目录脚本快速切换地址：
+
+- 脚本：`set-server-ip.js`
+
+在项目根目录执行：
+
+```bash
+node set-server-ip.js 8.134.12.34
+```
+
+也可以指定端口：
+
+```bash
+node set-server-ip.js 8.134.12.34 8080
+```
+
+也支持直接传完整 URL：
+
+```bash
+node set-server-ip.js https://api.example.com
+```
+
+这个脚本会自动处理：
+
+- `found/common/config.js` 中的前端接口地址
+- `server/.env` 中的后端相关地址配置
+
+修改后请重新运行前端，并按需重启后端。
+
+---
+
+## 主要接口约定
+
+前端目前会用到的主要接口包括：
+
+- `POST /auth/register` 用户注册
+- `POST /auth/login` 用户登录
+- `GET /auth/me` 获取当前用户信息
+- `GET /items` 获取信息列表
+- `GET /items/:id` 获取信息详情
+- `POST /items` 发布信息
+- `PUT /items/:id` 修改信息
+- `DELETE /items/:id` 删除信息
+- `GET /items/my` 获取我的发布
+- `GET /items/:id/comments` 获取评论列表
+- `POST /items/:id/comments` 发表评论
+- `DELETE /items/:id/comments/:commentId` 删除评论
+- `POST /upload` 上传图片
+- `GET /admin/items` 管理员获取全部信息
+- `PUT /admin/items/:id/status` 管理员修改状态
+- `DELETE /admin/items/:id` 管理员删除信息
+- `GET /notifications` 获取通知列表
 
 ---
 
 ## 关键实现说明
 
-- 请求统一封装在 `common/request.js`
-- Token 存储在本地缓存：`uni.setStorageSync('token', ...)`
-- 登录用户信息缓存：`uni.setStorageSync('user', ...)`
-- 发布页上传限制与上传地址来自配置文件
+- 请求封装：`common/request.js`
+- Token 本地缓存：`uni.setStorageSync('token', ...)`
+- 用户信息缓存：`uni.setStorageSync('user', ...)`
+- 静态资源访问基址来自 `common/config.js`
+- 上传数量限制由配置项控制
 
 ---
 
-## 后续建议
+## 提交到 GitHub 时建议忽略的内容
 
-为避免每次手动同步 `config.yaml` 与 `common/config.js`，建议新增一个构建前脚本：
+前端目录下通常不建议提交以下文件：
 
-- 读取 `config.yaml`
-- 自动生成 `common/config.js`
+- `found/unpackage/`：uni-app 编译产物
+- `found/node_modules/`：依赖目录（如果后续存在）
+- `.vscode/`：本地编辑器配置
+- 各类日志文件
 
-如果你需要，我可以下一步直接帮你把这个自动同步脚本也补上。
+如果你准备上传整个项目，建议在仓库根目录配置 `.gitignore`。
+
+---
+
+## 常见问题
+
+### 1. 页面能打开，但接口请求失败
+
+请检查：
+
+- 后端是否已启动
+- `common/config.js` 中的 `baseUrl` 是否正确
+- 后端端口是否为 `3000`
+- 后端 CORS 是否允许当前前端地址访问
+
+### 2. 上传图片失败
+
+请检查：
+
+- 后端上传接口是否正常
+- 前端上传地址是否为 `/api/upload`
+- 是否已登录
+
+### 3. 修改了 `config.yaml` 但前端没生效
+
+因为运行时实际读取的是 `common/config.js`，不是 `config.yaml`。
+
+---
+
+## 后续可优化项
+
+- 增加自动同步 `config.yaml -> common/config.js` 的脚本
+- 补充前端页面截图
+- 增加接口错误码说明
+- 增加发布与部署说明

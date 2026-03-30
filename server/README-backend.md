@@ -1,121 +1,275 @@
-# 校园失物招领后端说明
+# 校园失物招领后端（Node.js + Express + MongoDB）
 
-本文件用于说明后端配置文件 `backend.config.yaml` 的使用方式与字段含义。
+这是本项目的后端部分，负责提供用户认证、失物信息管理、评论、通知、上传和管理员接口。
 
 ---
 
-## 配置文件
+## 技术栈
 
-- 文件名：`backend.config.yaml`
-- 作用：集中管理后端运行参数（端口、数据库、鉴权、上传、安全等）
+- Node.js
+- Express
+- MongoDB + Mongoose
+- JWT 鉴权
+- Multer 文件上传
+- bcryptjs 密码加密
+- dotenv 环境变量管理
 
-示例结构：
+---
 
-```yaml backend.config.yaml
-app:
-  name: "校园失物招领-backend"
-  env: "development"
-  host: "0.0.0.0"
-  port: 3000
-  apiPrefix: "/api"
+## 项目结构
 
-cors:
-  enabled: true
-  origin:
-    - "http://localhost:5173"
-    - "http://localhost:8080"
-  credentials: true
-
-database:
-  type: "mongodb"
-  uri: "mongodb://127.0.0.1:27017/found"
-
-auth:
-  jwtSecret: "please_change_me"
-  jwtExpiresIn: "7d"
-
-upload:
-  dir: "uploads"
-  maxFileSizeMB: 10
-  allowedMimeTypes:
-    - "image/jpeg"
-    - "image/png"
-    - "image/webp"
-
-security:
-  bcryptRounds: 10
-  rateLimit:
-    enabled: true
-    windowMs: 900000
-    max: 200
-
-log:
-  level: "info"
+```text
+server/
+├─ middlewares/          # 鉴权与权限中间件
+├─ models/               # 数据模型
+├─ routes/               # 接口路由
+├─ uploads/              # 上传文件目录（运行时生成）
+├─ app.js                # 应用入口
+├─ package.json
+├─ .env.example          # 环境变量示例
+├─ .env.local.example    # 本地环境变量示例
+├─ backend.config.yaml   # 配置说明示例
+└─ set-admin.js          # 设置管理员脚本
 ```
 
 ---
 
-## 字段说明
+## 已实现功能
 
-### 1) app
-- `env`：运行环境（development/test/production）
-- `host`/`port`：服务监听地址与端口
-- `apiPrefix`：统一接口前缀（建议与前端一致，如 `/api`）
-
-### 2) cors
-- `origin`：允许跨域访问的前端地址白名单
-- `credentials`：是否允许携带凭证
-
-### 3) database
-- `uri`：MongoDB 连接字符串
-
-### 4) auth
-- `jwtSecret`：JWT 密钥（生产环境务必替换）
-- `jwtExpiresIn`：Token 过期时间（如 `7d`）
-
-### 5) upload
-- `dir`：上传目录
-- `maxFileSizeMB`：单文件最大大小
-- `allowedMimeTypes`：允许上传的 MIME 类型
-
-### 6) security
-- `bcryptRounds`：密码加密强度
-- `rateLimit`：接口限流参数
-
-### 7) log
-- `level`：日志级别（debug/info/warn/error）
+- 用户注册、登录、获取当前用户信息
+- 失物 / 招领信息的发布、修改、删除、查询
+- 我的发布列表
+- 评论列表、发表评论、删除评论
+- 图片上传
+- 管理员查看全部信息、修改状态、删除信息
+- 管理员查看用户列表、修改用户角色
+- 通知列表、单条已读、全部已读
+- AI 识别接口
 
 ---
 
-## 与前端配置对齐
+## 安装依赖
 
-请确保以下配置与前端一致：
+进入后端目录后执行：
 
-- 后端：`app.port` + `app.apiPrefix`
-- 前端：`config.yaml` 中的 `api.baseUrl` + `api.prefix`
-
-例如：
-- 后端：`http://localhost:3000` + `/api`
-- 前端：
-  - `baseUrl: "http://localhost:3000"`
-  - `prefix: "/api"`
+```bash
+npm install
+```
 
 ---
 
-## 安全建议
+## 环境变量配置
 
-1. 不要在仓库中提交真实 `jwtSecret`。
-2. 建议新增：
-   - `backend.config.example.yaml`（示例）
-   - 将真实配置加入 `.gitignore`
-3. 生产环境开启严格 CORS 与限流。
+后端运行依赖 `.env` 或其他指定环境文件。
+
+项目中已经提供示例文件，建议你复制后再填写自己的配置。
+
+### 常见做法
+
+1. 复制示例文件
+2. 修改实际值
+3. 再启动项目
+
+建议至少准备这些变量：
+
+- `PORT`：服务端口，默认常用 `3000`
+- `HOST`：监听地址，通常为 `0.0.0.0`
+- `MONGODB_URI`：MongoDB 连接字符串
+- `JWT_SECRET`：JWT 密钥
+- `CORS_ORIGIN`：允许跨域的前端来源
+- `BASE_URL`：当前服务对外访问地址
+
+### 启动前最重要的一项
+
+如果没有配置 `JWT_SECRET`，服务会直接启动失败。
 
 ---
 
-## 下一步（可选）
+## 启动项目
 
-如果你需要，我可以继续补：
+### 开发模式
 
-- Node.js/Express 读取 `backend.config.yaml` 的启动代码
-- 配置校验（缺字段启动失败）
-- 按环境自动加载（dev/prod）
+```bash
+npm run dev
+```
+
+### 使用本地环境文件启动
+
+```bash
+npm run dev:local
+```
+
+### 生产/普通启动
+
+```bash
+npm start
+```
+
+### 使用指定环境文件启动
+
+```bash
+npm run start:local
+npm run start:server
+```
+
+---
+
+## 接口前缀
+
+当前后端在 `app.js` 中注册的统一前缀为：
+
+```text
+/api
+```
+
+因此本地默认基础地址通常为：
+
+```text
+http://localhost:3000/api
+```
+
+---
+
+## 主要接口
+
+### 认证相关
+
+- `POST /api/auth/register` 注册
+- `POST /api/auth/login` 登录
+- `GET /api/auth/me` 获取当前用户信息
+
+### 失物信息相关
+
+- `GET /api/items` 获取列表
+- `GET /api/items/my` 获取我的发布
+- `POST /api/items` 发布信息
+- `GET /api/items/:id` 获取详情
+- `PUT /api/items/:id` 更新信息
+- `DELETE /api/items/:id` 删除信息
+- `GET /api/items/:id/matches` 获取匹配结果
+
+### 评论相关
+
+- `GET /api/items/:id/comments` 获取评论列表
+- `POST /api/items/:id/comments` 发表评论
+- `DELETE /api/items/:id/comments/:commentId` 删除评论
+
+### 上传相关
+
+- `POST /api/upload` 上传文件
+
+### 管理员相关
+
+- `GET /api/admin/users` 获取用户列表
+- `PUT /api/admin/users/:id/role` 修改用户角色
+- `GET /api/admin/items` 获取全部物品信息
+- `PUT /api/admin/items/:id/status` 修改信息状态
+- `DELETE /api/admin/items/:id` 删除信息
+
+### 通知相关
+
+- `GET /api/notifications` 获取通知列表
+- `PUT /api/notifications/:id/read` 标记单条已读
+- `PUT /api/notifications/read-all` 全部已读
+
+### AI 相关
+
+- `POST /api/ai/recognize` AI 图片识别
+
+---
+
+## 与前端联调
+
+请确保前后端配置一致：
+
+- 后端端口：默认 `3000`
+- 后端接口前缀：`/api`
+- 前端配置文件：`found/common/config.js`
+
+前端默认会请求：
+
+```text
+http://localhost:3000/api
+```
+
+如果你改了后端地址，也要同步修改前端。
+
+你也可以在项目根目录使用：
+
+```bash
+node set-server-ip.js 8.134.12.34
+```
+
+自动同步前后端相关地址。
+
+---
+
+## 管理员说明
+
+项目中有一个辅助脚本：
+
+- `set-admin.js`
+
+通常用于把指定用户设置为管理员。
+
+在使用前请先确认：
+
+- 数据库已连接成功
+- 目标用户已经注册
+- 当前环境变量配置正确
+
+---
+
+## 提交到 GitHub 时不建议上传的内容
+
+后端目录下以下内容通常不建议提交：
+
+- `server/node_modules/`：依赖目录
+- `server/uploads/`：用户上传文件
+- `server/.env`：真实环境变量
+- `server/.env.local`：本地环境变量
+- 运行日志、缓存文件
+
+建议把示例文件保留在仓库中：
+
+- `server/.env.example`
+- `server/.env.local.example`
+
+---
+
+## 关于 `backend.config.yaml`
+
+当前项目真正运行主要依赖的是环境变量和 `app.js`。
+
+`backend.config.yaml` 更适合作为：
+
+- 配置字段说明
+- 示例配置文档
+- 后续重构时的集中配置参考
+
+如果后面你准备把后端改成统一读取 YAML 配置，也可以继续扩展。
+
+---
+
+## 常见问题
+
+### 1. 服务启动失败并提示 `JWT_SECRET` 未设置
+
+说明你还没有正确配置环境变量文件，请先补上 `JWT_SECRET`。
+
+### 2. 前端请求后端失败
+
+请检查：
+
+- 后端是否已经启动
+- 端口是否正确
+- 前端 `baseUrl` 是否正确
+- `CORS_ORIGIN` 是否允许当前前端地址访问
+
+### 3. 图片访问失败
+
+请检查：
+
+- `uploads/` 目录是否存在
+- 后端是否正确暴露了 `/uploads` 静态目录
+- 数据库存储的图片地址是否正确
