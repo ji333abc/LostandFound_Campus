@@ -103,13 +103,13 @@ http://localhost:3000/api
 在项目根目录执行：
 
 ```bash
-node set-server-ip.js 8.134.12.34
+node set-server-ip.js <host>
 ```
 
 也可以指定端口：
 
 ```bash
-node set-server-ip.js 8.134.12.34 8080
+node set-server-ip.js <host> 8080
 ```
 
 也支持直接传完整 URL：
@@ -162,18 +162,6 @@ node set-server-ip.js https://api.example.com
 
 ---
 
-## 提交到 GitHub 时建议忽略的内容
-
-前端目录下通常不建议提交以下文件：
-
-- `frontend/unpackage/`：uni-app 编译产物
-- `frontend/node_modules/`：依赖目录（如果后续存在）
-- `.vscode/`：本地编辑器配置
-- 各类日志文件
-
-如果你准备上传整个项目，建议在仓库根目录配置 `.gitignore`。
-
----
 
 ## 常见问题
 
@@ -198,11 +186,3 @@ node set-server-ip.js https://api.example.com
 
 因为运行时实际读取的是 `common/config.js`，不是 `config.yaml`。
 
----
-
-## 后续可优化项
-
-- 增加自动同步 `config.yaml -> common/config.js` 的脚本
-- 补充前端页面截图
-- 增加接口错误码说明
-- 增加发布与部署说明
