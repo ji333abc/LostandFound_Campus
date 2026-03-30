@@ -222,22 +222,7 @@ node set-server-ip.js <host>
 
 ---
 
-## 提交到 GitHub 时不建议上传的内容
 
-后端目录下以下内容通常不建议提交：
-
-- `backend/node_modules/`：依赖目录
-- `backend/uploads/`：用户上传文件
-- `backend/.env`：真实环境变量
-- `backend/.env.local`：本地环境变量
-- 运行日志、缓存文件
-
-建议把示例文件保留在仓库中：
-
-- `backend/.env.example`
-- `backend/.env.local.example`
-
----
 
 ## 关于 `backend.config.yaml`
 
