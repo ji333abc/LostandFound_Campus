@@ -19,7 +19,7 @@
 ## 项目结构
 
 ```text
-server/
+backend/
 ├─ middlewares/          # 鉴权与权限中间件
 ├─ models/               # 数据模型
 ├─ routes/               # 接口路由
@@ -184,7 +184,7 @@ http://localhost:3000/api
 
 - 后端端口：默认 `3000`
 - 后端接口前缀：`/api`
-- 前端配置文件：`found/common/config.js`
+- 前端配置文件：`frontend/common/config.js`
 
 前端默认会请求：
 
@@ -210,13 +210,15 @@ node set-server-ip.js 8.134.12.34
 
 - `set-admin.js`
 
-通常用于把指定用户设置为管理员。
+通常用于把指定用户设置为管理员或恢复普通用户。
 
 在使用前请先确认：
 
 - 数据库已连接成功
 - 目标用户已经注册
 - 当前环境变量配置正确
+- 命令示例：`node set-admin.js test`
+- 恢复普通用户：`node set-admin.js test user`
 
 ---
 
@@ -224,16 +226,16 @@ node set-server-ip.js 8.134.12.34
 
 后端目录下以下内容通常不建议提交：
 
-- `server/node_modules/`：依赖目录
-- `server/uploads/`：用户上传文件
-- `server/.env`：真实环境变量
-- `server/.env.local`：本地环境变量
+- `backend/node_modules/`：依赖目录
+- `backend/uploads/`：用户上传文件
+- `backend/.env`：真实环境变量
+- `backend/.env.local`：本地环境变量
 - 运行日志、缓存文件
 
 建议把示例文件保留在仓库中：
 
-- `server/.env.example`
-- `server/.env.local.example`
+- `backend/.env.example`
+- `backend/.env.local.example`
 
 ---
 

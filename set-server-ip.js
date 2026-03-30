@@ -38,12 +38,12 @@ function normalize(input, portArg) {
 }
 
 function updateFrontConfig(baseUrl) {
-  const file = path.resolve(__dirname, 'found', 'common', 'config.js');
+  const file = path.resolve(__dirname, 'frontend', 'common', 'config.js');
   if (!fs.existsSync(file)) throw new Error(`前端配置文件不存在：${file}`);
 
   const src = fs.readFileSync(file, 'utf8');
   const pattern = /(baseUrl:\s*)(['"`])([^'"`]+)(['"`])/;
-  if (!pattern.test(src)) throw new Error('未找到 found/common/config.js 的 baseUrl 字段');
+  if (!pattern.test(src)) throw new Error('未找到 frontend/common/config.js 的 baseUrl 字段');
 
   const out = src.replace(pattern, (_, p1, q1, _old, q2) => `${p1}${q1 || q2 || "'"}${baseUrl}${q1 || q2 || "'"}`);
   fs.writeFileSync(file, out, 'utf8');
@@ -60,9 +60,9 @@ function upsertEnvLine(content, key, value) {
   return `${content}${suffix}${line}\n`;
 }
 
-function updateServerEnv(baseUrl, backendPort, envFileName, corsOrigin) {
+function updateBackendEnv(baseUrl, backendPort, envFileName, corsOrigin) {
   const envName = envFileName || '.env';
-  const file = path.resolve(__dirname, 'server', envName);
+  const file = path.resolve(__dirname, 'backend', envName);
 
   let content = '';
   if (fs.existsSync(file)) {
@@ -102,7 +102,7 @@ function main() {
     const { baseUrl, backendPort } = normalize(ipOrUrl, portArg);
 
     const frontFile = updateFrontConfig(baseUrl);
-    const envFile = updateServerEnv(baseUrl, backendPort, envName, maybeCorsOrigin);
+    const envFile = updateBackendEnv(baseUrl, backendPort, envName, maybeCorsOrigin);
 
     console.log('✅ 一键切换完成');
     console.log(`- 前端已更新: ${frontFile}`);

@@ -14,29 +14,29 @@ pnpm-debug.log*
 .idea/
 
 # Environment files
-server/.env
-server/.env.local
-server/.env.server
-server/.env.*.local
+backend/.env
+backend/.env.local
+backend/.env.server
+backend/.env.*.local
 
 # Keep example env files
-!server/.env.example
-!server/.env.local.example
+!backend/.env.example
+!backend/.env.local.example
 
 # Node.js backend
-server/node_modules/
-server/uploads/
-server/dist/
-server/build/
-server/.cache/
+backend/node_modules/
+backend/uploads/
+backend/dist/
+backend/build/
+backend/.cache/
 
 # uni-app / frontend
-found/node_modules/
-found/unpackage/
-found/dist/
+frontend/node_modules/
+frontend/unpackage/
+frontend/dist/
 
 # Local test / debug files
-server/1.txt
+backend/1.txt
 
 # Temporary files
 *.tmp
@@ -44,5 +44,5 @@ server/1.txt
 
 # If these are only local debug/helper files, uncomment as needed
 # set-server-ip.js
-# server/set-admin.js
-# server/AI_CONFIG.md
+# backend/set-admin.js
+# backend/AI_CONFIG.md

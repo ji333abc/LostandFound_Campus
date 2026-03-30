@@ -18,7 +18,7 @@
 ## 项目结构
 
 ```text
-found/
+frontend/
 ├─ common/                 # 公共方法与配置
 │  ├─ config.js            # 前端运行时配置
 │  └─ request.js           # 请求封装
@@ -50,7 +50,7 @@ found/
 
 ### 方式一：HBuilderX
 
-1. 使用 HBuilderX 打开 `found/` 目录。
+1. 使用 HBuilderX 打开 `frontend/` 目录。
 2. 运行到浏览器、真机或小程序模拟器。
 3. 确认后端服务已经启动。
 4. 确认前端接口地址与后端实际地址一致。
@@ -90,7 +90,7 @@ http://localhost:3000/api
 
 所以如果你修改了接口地址，请优先检查：
 
-- `found/common/config.js`
+- `frontend/common/config.js`
 
 ---
 
@@ -120,8 +120,9 @@ node set-server-ip.js https://api.example.com
 
 这个脚本会自动处理：
 
-- `found/common/config.js` 中的前端接口地址
-- `server/.env` 中的后端相关地址配置
+- `frontend/common/config.js` 中的前端接口地址
+- `backend/.env` 中的后端相关地址配置
+
 
 修改后请重新运行前端，并按需重启后端。
 
@@ -165,8 +166,8 @@ node set-server-ip.js https://api.example.com
 
 前端目录下通常不建议提交以下文件：
 
-- `found/unpackage/`：uni-app 编译产物
-- `found/node_modules/`：依赖目录（如果后续存在）
+- `frontend/unpackage/`：uni-app 编译产物
+- `frontend/node_modules/`：依赖目录（如果后续存在）
 - `.vscode/`：本地编辑器配置
 - 各类日志文件
 
