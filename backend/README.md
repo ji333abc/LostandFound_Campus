@@ -197,7 +197,7 @@ http://localhost:3000/api
 你也可以在项目根目录使用：
 
 ```bash
-node set-server-ip.js 8.134.12.34
+node set-server-ip.js <host>
 ```
 
 自动同步前后端相关地址。
