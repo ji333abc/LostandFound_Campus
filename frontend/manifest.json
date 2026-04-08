@@ -1,6 +1,6 @@
 {
-    "name" : "found",
-    "appid" : "__UNI__34501B5",
+    "name" : "LostandFound_Campus",
+    "appid" : "",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -52,7 +52,7 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "wxb5517a1f1e21e373",
+        "appid" : "",
         "setting" : {
             "urlCheck" : false
         },
