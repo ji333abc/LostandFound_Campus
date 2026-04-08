@@ -20,7 +20,8 @@
 ```text
 frontend/
 ├─ common/                 # 公共方法与配置
-│  ├─ config.js            # 前端运行时配置
+│  ├─ config.example.js    # 前端配置示例（提交到仓库）
+│  ├─ config.js            # 前端运行时配置（本地生成，不提交）
 │  └─ request.js           # 请求封装
 ├─ custom-tab-bar/         # 自定义 tabBar
 ├─ pages/                  # 页面目录
@@ -66,6 +67,12 @@ frontend/
 前端运行时实际读取的是：
 
 - `common/config.js`
+
+首次使用前，请先从示例文件复制：
+
+```bash
+cp frontend/common/config.example.js frontend/common/config.js
+```
 
 当前默认配置关键项如下：
 
@@ -120,7 +127,7 @@ node set-server-ip.js https://api.example.com
 
 这个脚本会自动处理：
 
-- `frontend/common/config.js` 中的前端接口地址
+- `frontend/common/config.js` 中的前端接口地址（如不存在会从 `config.example.js` 自动创建）
 - `backend/.env` 中的后端相关地址配置
 
 

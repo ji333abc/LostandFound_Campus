@@ -117,6 +117,12 @@ frontend/
 frontend/common/config.js
 ```
 
+首次运行前，请先复制示例配置：
+
+```bash
+cp frontend/common/config.example.js frontend/common/config.js
+```
+
 默认接口地址通常类似：
 
 ```text
@@ -136,7 +142,7 @@ node set-server-ip.js <host>
 ```
 
 例如可以传入本地地址、局域网地址或域名。脚本会自动更新：
-- `frontend/common/config.js`
+- `frontend/common/config.js`（如不存在会从 `config.example.js` 自动创建）
 - `backend/.env` 或指定环境文件
 
 ---

@@ -34,6 +34,9 @@ backend/.cache/
 frontend/node_modules/
 frontend/unpackage/
 frontend/dist/
+frontend/common/config.js
+!frontend/common/config.example.js
+
 
 # Local test / debug files
 backend/1.txt

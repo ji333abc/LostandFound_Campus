@@ -4,11 +4,15 @@
  * 项目一键切换服务器地址（前端 + 后端）
  *
  * 用法：
- *   node set-server-ip.js 8.134.12.34
- *   node set-server-ip.js 8.134.12.34 8080
+ *   node set-server-ip.js xxx.xxx.xxx.xxx
+ *   node set-server-ip.js xxx.xxx.xxx.xxx 8080
  *   node set-server-ip.js https://api.example.com
- *   node set-server-ip.js 8.134.12.34 3000 .env.server
- *   node set-server-ip.js 8.134.12.34 3000 .env.server http://localhost:5173
+ *   node set-server-ip.js xxx.xxx.xxx.xxx 3000 .env.server
+ *   node set-server-ip.js xxx.xxx.xxx.xxx 3000 .env.server http://localhost:5173
+ *
+ * 说明：
+ *   - 前端实际读取 frontend/common/config.js
+ *   - 若 config.js 不存在，脚本会尝试从 config.example.js 自动创建
  */
 
 const fs = require('fs');
@@ -38,8 +42,17 @@ function normalize(input, portArg) {
 }
 
 function updateFrontConfig(baseUrl) {
-  const file = path.resolve(__dirname, 'frontend', 'common', 'config.js');
-  if (!fs.existsSync(file)) throw new Error(`前端配置文件不存在：${file}`);
+  const frontDir = path.resolve(__dirname, 'frontend', 'common');
+  const file = path.resolve(frontDir, 'config.js');
+  const exampleFile = path.resolve(frontDir, 'config.example.js');
+
+  if (!fs.existsSync(file)) {
+    if (!fs.existsSync(exampleFile)) {
+      throw new Error(`前端配置文件不存在，且未找到示例文件：${exampleFile}`);
+    }
+    fs.copyFileSync(exampleFile, file);
+    console.log(`ℹ️ 已从示例文件创建前端配置：${file}`);
+  }
 
   const src = fs.readFileSync(file, 'utf8');
   const pattern = /(baseUrl:\s*)(['"`])([^'"`]+)(['"`])/;
