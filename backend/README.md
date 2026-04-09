@@ -66,18 +66,37 @@ npm install
 
 ### 常见做法
 
-1. 复制示例文件
-2. 修改实际值
-3. 再启动项目
+直接复制示例文件：
 
-建议至少准备这些变量：
+```bash
+cp .env.example .env
+```
 
-- `PORT`：服务端口，默认常用 `3000`
-- `HOST`：监听地址，通常为 `0.0.0.0`
-- `MONGODB_URI`：MongoDB 连接字符串
-- `JWT_SECRET`：JWT 密钥
-- `CORS_ORIGIN`：允许跨域的前端来源
-- `BASE_URL`：当前服务对外访问地址
+然后按需修改 `.env` 中的配置，再启动项目。
+
+### 环境变量说明（请按你的环境修改）
+
+- `MONGODB_URI`：MongoDB 连接字符串（本地常用：`mongodb://127.0.0.1:27017/campus_lost_found`）
+- `JWT_SECRET`：JWT 签名密钥（必填，不能为空）
+- `PORT`：后端服务监听端口（默认 `3000`）
+- `HOST`：后端服务监听地址（推荐 `0.0.0.0`，允许外部访问）
+- `BASE_URL`：后端对外访问地址（用于拼接图片等完整链接）
+- `CORS_ORIGIN`：允许跨域访问的前端来源（开发可用 `*`，生产建议填写前端域名）
+
+> `HOST + PORT` 用于“服务监听”；`BASE_URL` 用于“告诉前端如何访问后端”。
+>
+> 示例：服务监听 `0.0.0.0:3000`，但对外通过域名访问时，`BASE_URL` 可以写成 `https://example.com`。
+
+AI 相关（按需配置）：
+
+- `OPENAI_API_KEY`：OpenAI 接口密钥（图片识别能力）
+- `OPENAI_API_ENDPOINT`：OpenAI 接口地址
+- `OPENAI_MODEL`：OpenAI 模型名称
+- `MATCH_AI_PROVIDER`：匹配 AI 提供方（示例：`anthropic`）
+- `MATCH_AI_API_KEY`：匹配 AI 接口密钥
+- `MATCH_AI_API_ENDPOINT`：匹配 AI 接口地址
+- `MATCH_AI_MODEL`：匹配 AI 模型名称
+- `MATCH_AI_MAX_TOKENS`：匹配 AI 返回长度上限
 
 ### 启动前最重要的一项
 
