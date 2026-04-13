@@ -74,7 +74,7 @@ cp .env.example .env
 
 然后按需修改 `.env` 中的配置，再启动项目。
 
-### 环境变量说明（请按你的环境修改）
+### 环境变量说明 
 
 - `MONGODB_URI`：MongoDB 连接字符串（本地常用：`mongodb://127.0.0.1:27017/campus_lost_found`）
 - `JWT_SECRET`：JWT 签名密钥（必填，不能为空）
