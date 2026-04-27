@@ -166,14 +166,17 @@ export default {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #FBFBFA;
-  padding-bottom: 40rpx;
+  padding-bottom: 48rpx;
 }
 
-/* 顶部标题 */
 .header {
-  padding: 60rpx 40rpx 32rpx;
+  margin: 28rpx 28rpx 24rpx;
+  padding: 52rpx 40rpx;
   text-align: center;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.96) 60%, rgba(79, 124, 255, 0.08) 100%);
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 18rpx 54rpx rgba(15, 23, 42, 0.08);
 }
 
 .header-icon {
@@ -183,73 +186,75 @@ export default {
 }
 
 .header-title {
-  font-size: 48rpx;
-  font-weight: 600;
-  color: #37352F;
-  letter-spacing: -0.5rpx;
+  font-size: 50rpx;
+  font-weight: 700;
+  color: #1f2937;
+  letter-spacing: -1rpx;
 }
-/* 统计卡片 */
+
 .stats-section {
   display: flex;
-  gap: 16rpx;
-  padding: 0 40rpx 32rpx;
+  gap: 14rpx;
+  padding: 0 28rpx 24rpx;
 }
 
 .stat-card {
   flex: 1;
-  padding: 24rpx 16rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  padding: 26rpx 16rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 24rpx;
   text-align: center;
+  box-shadow: 0 12rpx 34rpx rgba(15, 23, 42, 0.05);
 }
 
 .stat-value {
   font-size: 40rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-weight: 700;
+  color: #1f2937;
   display: block;
   margin-bottom: 8rpx;
 }
 
 .stat-label {
   font-size: 24rpx;
-  color: #9B9A97;
+  color: #94a3b8;
   display: block;
 }
-/* 筛选区 */
+
 .filter-section {
   display: flex;
-  gap: 16rpx;
-  padding: 0 40rpx 32rpx;
+  gap: 14rpx;
+  padding: 0 28rpx 24rpx;
 }
 
 .filter-btn {
   flex: 1;
-  padding: 20rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  padding: 22rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 22rpx;
   text-align: center;
   font-size: 28rpx;
-  color: #37352F;
+  color: #1f2937;
+  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.04);
 }
 
-/* 列表滚动区 */
 .list-scroll {
-  height: calc(100vh - 480rpx);
+  height: calc(100vh - 500rpx);
 }
 
 .list-section {
-  padding: 0 40rpx;
+  padding: 0 28rpx;
 }
-/* 列表卡片 */
+
 .item-card {
   padding: 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 26rpx;
   margin-bottom: 16rpx;
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.05);
 }
 
 .item-top {
@@ -266,27 +271,27 @@ export default {
 .item-title {
   flex: 1;
   font-size: 30rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-weight: 700;
+  color: #1f2937;
   margin-right: 12rpx;
 }
 
 .status-badge {
-  padding: 6rpx 16rpx;
-  border-radius: 4rpx;
-  font-size: 24rpx;
-  font-weight: 500;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
 .status-badge.open {
-  background: #E3F2FD;
-  color: #2383E2;
+  background: rgba(79, 124, 255, 0.1);
+  color: #3d68eb;
 }
 
 .status-badge.resolved {
-  background: #E8F5E9;
-  color: #0F7B6C;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
 }
 
 .item-info {
@@ -297,7 +302,7 @@ export default {
 
 .info-text {
   font-size: 24rpx;
-  color: #9B9A97;
+  color: #94a3b8;
 }
 
 .item-actions {
@@ -307,40 +312,42 @@ export default {
 
 .action-btn {
   flex: 1;
-  padding: 16rpx;
-  border-radius: 6rpx;
+  padding: 18rpx;
+  border-radius: 20rpx;
   font-size: 26rpx;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
-  transition: all 0.2s;
 }
 
 .toggle-btn {
-  background: #FFF9E6;
-  color: #D97706;
-  border: 1rpx solid #FFE8A3;
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  border: 1rpx solid rgba(245, 158, 11, 0.16);
 }
 
 .toggle-btn:active {
-  background: #FFF4CC;
+  background: rgba(245, 158, 11, 0.16);
 }
 
 .delete-btn {
-  background: #FEF2F2;
-  color: #DC2626;
-  border: 1rpx solid #FECACA;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1rpx solid rgba(239, 68, 68, 0.16);
 }
 
 .delete-btn:active {
-  background: #FEE2E2;
+  background: rgba(239, 68, 68, 0.16);
 }
 
-/* 空状态 */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 100rpx 40rpx;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1rpx solid rgba(148, 163, 184, 0.14);
+  border-radius: 28rpx;
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
 }
 
 .empty-icon {
@@ -351,13 +358,14 @@ export default {
 
 .empty-text {
   font-size: 32rpx;
-  color: #37352F;
+  color: #1f2937;
   margin-bottom: 12rpx;
+  font-weight: 600;
 }
 
 .empty-hint {
   font-size: 26rpx;
-  color: #9B9A97;
+  color: #94a3b8;
 }
 </style>
 

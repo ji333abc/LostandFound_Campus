@@ -1,14 +1,15 @@
 <template>
   <view class="page">
-    <!-- 顶部标题 -->
-    <view class="header">
-      <view class="header-title">发布信息</view>
-      <view class="header-subtitle">帮助更多人找回失物</view>
-    </view>
+    <view class="page-shell">
+      <!-- 顶部标题 -->
+      <view class="header">
+        <view class="header-title">发布信息</view>
+        <view class="header-subtitle">帮助更多人找回失物</view>
+      </view>
 
-    <!-- 类型选择 -->
-    <view class="section">
-      <view class="section-label">选择类型</view>
+      <!-- 类型选择 -->
+      <view class="section">
+          <view class="section-label">选择类型</view>
       <view class="type-selector">
         <view 
           :class="['type-option', form.type === 'lost' ? 'active' : '']"
@@ -125,15 +126,28 @@
       />
     </view>
 
-    <!-- 发布按钮 -->
-    <view class="submit-section">
-      <button class="submit-btn" :disabled="submitting" @click="submit">
-        <text v-if="!submitting">立即发布</text>
-        <text v-else>发布中...</text>
-      </button>
+      <!-- 发布按钮 -->
+      <view class="submit-section">
+        <button class="submit-btn" :disabled="submitting" @click="submit">
+          <text v-if="!submitting">立即发布</text>
+          <text v-else>发布中...</text>
+        </button>
+      </view>
+
+      <view class="bottom-safe"></view>
     </view>
 
-    <view class="bottom-safe"></view>
+    <view v-if="showLoginDialog" class="dialog-mask" @click="closeLoginDialog">
+      <view class="login-dialog" @click.stop>
+        <view class="dialog-icon">🔐</view>
+        <view class="dialog-title">请先登录</view>
+        <view class="dialog-text">登录后才可以发布信息、上传图片并与他人联系。</view>
+        <view class="dialog-actions">
+          <view class="dialog-btn dialog-btn-secondary" @click="closeLoginDialog">稍后再说</view>
+          <view class="dialog-btn dialog-btn-primary" @click="goLogin">去登录</view>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -167,7 +181,8 @@ export default {
       lastRecognizeAt: 0,
       aiDescriptionGenerated: false,
       aiDescriptionEdited: false,
-      recognizeMode: 'detailed'
+      recognizeMode: 'detailed',
+      showLoginDialog: false
     }
   },
   computed: {
@@ -177,21 +192,20 @@ export default {
   },
   onShow() {
     const token = uni.getStorageSync('token');
-    if (!token) {
-      uni.showModal({
-        title: '提示',
-        content: '发布前请先登录',
-        success: (res) => {
-          if (res.confirm) {
-            uni.navigateTo({ url: '/pages/login/login' });
-          }
-        }
-      });
-    }
-
+    this.showLoginDialog = !token;
     this.getTabBar && this.getTabBar().setSelected(1);
   },
   methods: {
+    promptLogin() {
+      this.showLoginDialog = true;
+    },
+    closeLoginDialog() {
+      this.showLoginDialog = false;
+    },
+    goLogin() {
+      this.showLoginDialog = false;
+      uni.navigateTo({ url: '/pages/login/login' });
+    },
     selectType(type) {
       this.form.type = type;
       this.typeIndex = type === 'lost' ? 0 : 1;
@@ -288,7 +302,8 @@ export default {
     async chooseImage() {
       const token = uni.getStorageSync('token');
       if (!token) {
-        return uni.showToast({ title: '请先登录', icon: 'none' });
+        this.promptLogin();
+        return;
       }
 
       if (this.images.length >= MAX_UPLOAD_IMAGES) {
@@ -335,6 +350,11 @@ export default {
       });
     },
     async submit() {
+      const token = uni.getStorageSync('token');
+      if (!token) {
+        this.promptLogin();
+        return;
+      }
       if (!this.form.title) {
         return uni.showToast({ title: '请输入物品名称', icon: 'none' });
       }
@@ -372,40 +392,52 @@ export default {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #FBFBFA;
-  padding-bottom: 140rpx;
+  padding: 0 20rpx 160rpx;
 }
 
-/* 顶部标题 */
+.page-shell {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
 .header {
-  padding: 60rpx 40rpx 40rpx;
+  margin: 28rpx 0;
+  padding: 54rpx 38rpx;
+  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(255, 255, 255, 0.94) 58%, rgba(124, 58, 237, 0.08) 100%);
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 18rpx 54rpx rgba(15, 23, 42, 0.08);
 }
 
 .header-title {
-  font-size: 48rpx;
-  font-weight: 600;
-  color: #37352F;
-  margin-bottom: 8rpx;
-  letter-spacing: -0.5rpx;
+  font-size: 50rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 10rpx;
+  letter-spacing: -1rpx;
 }
 
 .header-subtitle {
   font-size: 28rpx;
-  color: #787774;
+  color: #64748b;
 }
-/* 区块样式 */
+
 .section {
-  padding: 0 40rpx;
-  margin-bottom: 48rpx;
+  margin: 0 0 26rpx;
+  padding: 30rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 28rpx;
+  box-shadow: 0 14rpx 40rpx rgba(15, 23, 42, 0.05);
 }
 
 .section-label {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 20rpx;
-  text-transform: uppercase;
-  letter-spacing: 0.5rpx;
+  letter-spacing: 1rpx;
 }
 
 .section-label-row {
@@ -413,6 +445,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20rpx;
+  gap: 14rpx;
 }
 
 .section-label-row .section-label {
@@ -432,68 +465,67 @@ export default {
 }
 
 .mode-chip {
-  padding: 8rpx 18rpx;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 24rpx;
-  color: #787774;
-  background: #FFFFFF;
+  padding: 10rpx 18rpx;
+  border: 1rpx solid rgba(148, 163, 184, 0.18);
+  border-radius: 999rpx;
+  color: #64748b;
+  background: rgba(248, 250, 252, 0.8);
   font-size: 22rpx;
   line-height: 1;
 }
 
 .mode-chip.active {
-  border-color: #2383E2;
-  color: #2383E2;
-  background: #F0F7FF;
+  border-color: rgba(79, 124, 255, 0.22);
+  color: #3d68eb;
+  background: rgba(79, 124, 255, 0.1);
 }
 
 .ai-recognize-btn {
   padding: 12rpx 24rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #FFFFFF;
-  border-radius: 32rpx;
+  background: linear-gradient(135deg, #7c3aed 0%, #4f7cff 100%);
+  color: #ffffff;
+  border-radius: 999rpx;
   font-size: 24rpx;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
-  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
-  transition: all 0.2s;
+  box-shadow: 0 12rpx 30rpx rgba(79, 124, 255, 0.2);
   display: flex;
   align-items: center;
   line-height: 1;
 }
 
 .ai-recognize-btn:active {
-  transform: translateY(1rpx);
-  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+  transform: translateY(2rpx);
 }
 
 .ai-recognize-btn:disabled {
-  background: #9B9A97;
-  opacity: 0.6;
+  background: #cbd5e1;
+  opacity: 0.8;
   box-shadow: none;
 }
-/* 类型选择器 */
+
 .type-selector {
   display: flex;
-  gap: 20rpx;
+  gap: 18rpx;
 }
 
 .type-option {
   flex: 1;
-  padding: 32rpx 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  padding: 34rpx 24rpx;
+  background: rgba(248, 250, 252, 0.85);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 24rpx;
   text-align: center;
-  transition: all 0.2s;
+  transition: all 0.22s;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .type-option.active {
-  background: #37352F;
-  border-color: #37352F;
+  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
+  border-color: transparent;
+  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.2);
 }
 
 .type-emoji {
@@ -503,89 +535,97 @@ export default {
 
 .type-text {
   font-size: 28rpx;
-  color: #787774;
+  color: #64748b;
+  font-weight: 600;
 }
 
 .type-option.active .type-text {
-  color: #FFFFFF;
+  color: #ffffff;
 }
-/* 输入框 */
+
 .input {
+  display: block;
   width: 100%;
+  min-height: 92rpx;
   padding: 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 22rpx;
   font-size: 28rpx;
-  color: #37352F;
+  line-height: 1.4;
+  color: #1f2937;
   margin-bottom: 16rpx;
   transition: all 0.2s;
+  position: relative;
+  z-index: 2;
 }
 
 .input::placeholder {
-  color: #9B9A97;
+  color: #94a3b8;
 }
 
 .input:focus {
-  border-color: #2383E2;
-  box-shadow: 0 0 0 6rpx rgba(35, 131, 226, 0.1);
+  border-color: rgba(79, 124, 255, 0.42);
+  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
 }
 
-/* 日期选择器 */
 .date-picker {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 22rpx;
 }
 
 .date-label {
   font-size: 28rpx;
-  color: #787774;
+  color: #64748b;
 }
 
 .date-value {
   font-size: 28rpx;
-  color: #37352F;
+  color: #1f2937;
+  font-weight: 500;
 }
 
-/* 文本域 */
 .textarea {
+  display: block;
   width: 100%;
   padding: 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 22rpx;
   font-size: 28rpx;
-  color: #37352F;
+  color: #1f2937;
   min-height: 240rpx;
   line-height: 1.8;
   transition: all 0.2s;
+  position: relative;
+  z-index: 2;
 }
 
 .textarea::placeholder {
-  color: #9B9A97;
+  color: #94a3b8;
 }
 
 .textarea:focus {
-  border-color: #2383E2;
-  box-shadow: 0 0 0 6rpx rgba(35, 131, 226, 0.1);
+  border-color: rgba(79, 124, 255, 0.42);
+  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
 }
 
 .ai-tip {
-  margin-top: 12rpx;
+  margin-top: 14rpx;
   padding: 16rpx 20rpx;
-  background: #FFF7E6;
-  border: 1rpx solid #FFD591;
-  border-radius: 6rpx;
-  color: #8C6D1F;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1rpx solid rgba(245, 158, 11, 0.16);
+  border-radius: 20rpx;
+  color: #b45309;
   font-size: 24rpx;
   line-height: 1.6;
 }
-/* 图片上传 */
+
 .image-list {
   display: flex;
   flex-wrap: wrap;
@@ -596,9 +636,9 @@ export default {
   width: 200rpx;
   height: 200rpx;
   position: relative;
-  border-radius: 6rpx;
+  border-radius: 24rpx;
   overflow: hidden;
-  border: 1rpx solid #E9E9E7;
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
 }
 
 .image {
@@ -608,11 +648,11 @@ export default {
 
 .image-delete {
   position: absolute;
-  top: 8rpx;
-  right: 8rpx;
+  top: 10rpx;
+  right: 10rpx;
   width: 48rpx;
   height: 48rpx;
-  background: rgba(55, 53, 47, 0.8);
+  background: rgba(15, 23, 42, 0.72);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -625,9 +665,9 @@ export default {
 .image-add {
   width: 200rpx;
   height: 200rpx;
-  border-radius: 6rpx;
-  border: 2rpx dashed #E9E9E7;
-  background: #FFFFFF;
+  border-radius: 24rpx;
+  border: 2rpx dashed rgba(79, 124, 255, 0.22);
+  background: rgba(79, 124, 255, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -635,11 +675,12 @@ export default {
 }
 
 .image-add:active {
-  border-color: #2383E2;
-  background: #F7FBFF;
+  border-color: rgba(79, 124, 255, 0.44);
+  background: rgba(79, 124, 255, 0.08);
 }
 
-.add-content {
+.add-content,
+.uploading-content {
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -651,24 +692,18 @@ export default {
   margin-bottom: 8rpx;
 }
 
-.add-text {
+.add-text,
+.uploading-text {
   font-size: 24rpx;
-  color: #9B9A97;
-}
-
-.uploading-content {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  color: #94a3b8;
 }
 
 .uploading-spinner {
   width: 48rpx;
   height: 48rpx;
   margin-bottom: 12rpx;
-  border: 4rpx solid #E9E9E7;
-  border-top-color: #2383E2;
+  border: 4rpx solid rgba(148, 163, 184, 0.18);
+  border-top-color: #4f7cff;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -677,40 +712,208 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-.uploading-text {
-  font-size: 24rpx;
-  color: #9B9A97;
-}
-/* 提交按钮 */
 .submit-section {
-  padding: 0 40rpx;
-  margin-top: 60rpx;
+  padding: 0;
+  margin-top: 14rpx;
 }
 
 .submit-btn {
   width: 100%;
-  padding: 28rpx;
-  background: #2383E2;
-  color: #FFFFFF;
-  border-radius: 6rpx;
+  padding: 30rpx;
+  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
+  color: #ffffff;
+  border-radius: 26rpx;
   text-align: center;
-  font-size: 28rpx;
-  font-weight: 500;
+  font-size: 30rpx;
+  font-weight: 600;
   border: none;
-  transition: all 0.2s;
+  box-shadow: 0 18rpx 40rpx rgba(79, 124, 255, 0.22);
 }
 
 .submit-btn:active {
-  background: #1a6ec7;
-  transform: translateY(1rpx);
+  transform: translateY(2rpx);
 }
 
 .submit-btn:disabled {
-  background: #9B9A97;
-  opacity: 0.6;
+  background: #cbd5e1;
+  opacity: 0.9;
+  box-shadow: none;
 }
 
 .bottom-safe {
   height: 40rpx;
+}
+
+.dialog-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.34);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+  z-index: 1200;
+  backdrop-filter: blur(12rpx);
+}
+
+.login-dialog {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 44rpx 34rpx 34rpx;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1rpx solid rgba(148, 163, 184, 0.18);
+  border-radius: 32rpx;
+  box-shadow: 0 24rpx 70rpx rgba(15, 23, 42, 0.18);
+  text-align: center;
+}
+
+.dialog-icon {
+  width: 104rpx;
+  height: 104rpx;
+  margin: 0 auto 22rpx;
+  border-radius: 30rpx;
+  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(124, 58, 237, 0.12) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 54rpx;
+}
+
+.dialog-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12rpx;
+}
+
+.dialog-text {
+  font-size: 27rpx;
+  line-height: 1.7;
+  color: #64748b;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 30rpx;
+}
+
+.dialog-btn {
+  flex: 1;
+  padding: 22rpx 20rpx;
+  border-radius: 22rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  text-align: center;
+}
+
+.dialog-btn-secondary {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  color: #64748b;
+}
+
+.dialog-btn-primary {
+  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
+  color: #ffffff;
+  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.18);
+}
+
+@media screen and (min-width: 768px) {
+  .page {
+    padding: 24px 24px 180px;
+  }
+
+  .header {
+    padding: 34px 32px;
+  }
+
+  .section {
+    padding: 28px;
+  }
+
+  .header-title {
+    font-size: 32px;
+  }
+
+  .header-subtitle,
+  .type-text,
+  .date-label,
+  .date-value,
+  .submit-btn,
+  .dialog-btn {
+    font-size: 16px;
+  }
+
+  .input {
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  .textarea {
+    min-height: 132px;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  .section-label,
+  .mode-chip,
+  .add-text,
+  .uploading-text,
+  .ai-tip {
+    font-size: 13px;
+  }
+
+  .type-option {
+    min-height: 148px;
+    justify-content: center;
+  }
+
+  .image-wrapper,
+  .image-add {
+    width: calc((100% - 32px) / 3);
+    max-width: 180px;
+    height: 180px;
+  }
+
+  .login-dialog {
+    max-width: 420px;
+    padding: 28px;
+    border-radius: 24px;
+  }
+
+  .dialog-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  .dialog-title {
+    font-size: 24px;
+  }
+
+  .dialog-text {
+    font-size: 14px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .page-shell {
+    max-width: 1080px;
+  }
+
+  .type-selector {
+    gap: 20px;
+  }
+
+  .section-label-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
 }
 </style>

@@ -1,10 +1,11 @@
 <template>
   <view class="page">
-    <view class="header">
-      <text class="logo-icon">📝</text>
-      <text class="title">创建账号</text>
-      <text class="subtitle">{{ registerSubtitle }}</text>
-    </view>
+    <view class="page-shell">
+      <view class="header">
+        <text class="logo-icon">📝</text>
+        <text class="title">创建账号</text>
+        <text class="subtitle">{{ registerSubtitle }}</text>
+      </view>
 
     <view class="form-section">
       <view class="section-label">必填信息</view>
@@ -29,10 +30,11 @@
         <input class="input" v-model="form.wechat" placeholder="微信号" />
       </view>
 
-      <button class="register-btn" :disabled="loading" @click="register">
-        <text v-if="!loading">立即注册</text>
-        <text v-else>注册中...</text>
-      </button>
+        <button class="register-btn" :disabled="loading" @click="register">
+          <text v-if="!loading">立即注册</text>
+          <text v-else>注册中...</text>
+        </button>
+      </view>
     </view>
   </view>
 </template>
@@ -92,49 +94,63 @@ export default {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #FBFBFA;
-  padding: 60rpx 40rpx 80rpx;
+  padding: 68rpx 32rpx 96rpx;
+}
+
+.page-shell {
+  width: 100%;
+  max-width: 720rpx;
+  margin: 0 auto;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 48rpx;
+  margin-bottom: 42rpx;
 }
 
 .logo-icon {
-  font-size: 100rpx;
+  width: 132rpx;
+  height: 132rpx;
+  line-height: 132rpx;
+  font-size: 72rpx;
   display: block;
-  margin-bottom: 24rpx;
+  margin: 0 auto 24rpx;
+  border-radius: 36rpx;
+  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(124, 58, 237, 0.12) 100%);
 }
 
 .title {
-  font-size: 48rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-size: 52rpx;
+  font-weight: 700;
+  color: #1f2937;
   display: block;
   margin-bottom: 12rpx;
-  letter-spacing: -0.5rpx;
+  letter-spacing: -1rpx;
 }
 
 .subtitle {
   font-size: 28rpx;
-  color: #9B9A97;
+  color: #94a3b8;
   display: block;
 }
 
 .form-section {
-  max-width: 600rpx;
+  max-width: 640rpx;
   margin: 0 auto;
+  padding: 36rpx 30rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 32rpx;
+  box-shadow: 0 20rpx 54rpx rgba(15, 23, 42, 0.08);
 }
 
 .section-label {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #37352F;
-  margin-bottom: 16rpx;
-  margin-top: 32rpx;
-  text-transform: uppercase;
-  letter-spacing: 0.5rpx;
+  font-size: 23rpx;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 14rpx;
+  margin-top: 30rpx;
+  letter-spacing: 1rpx;
 }
 
 .section-label:first-child {
@@ -142,50 +158,110 @@ export default {
 }
 
 .input-wrapper {
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
 }
 
 .input {
+  display: block;
   width: 100%;
-  padding: 28rpx 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
+  min-height: 96rpx;
+  padding: 26rpx 24rpx;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 22rpx;
   font-size: 30rpx;
-  color: #37352F;
+  line-height: 1.4;
+  color: #1f2937;
   transition: all 0.2s;
+  position: relative;
+  z-index: 2;
 }
 
 .input::placeholder {
-  color: #9B9A97;
+  color: #94a3b8;
 }
 
 .input:focus {
-  border-color: #2383E2;
-  box-shadow: 0 0 0 6rpx rgba(35, 131, 226, 0.1);
+  border-color: rgba(79, 124, 255, 0.42);
+  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
 }
 
 .register-btn {
   width: 100%;
-  padding: 28rpx;
-  background: #2383E2;
-  color: #FFFFFF;
-  border-radius: 6rpx;
+  min-height: 96rpx;
+  padding: 0 28rpx;
+  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
+  color: #ffffff;
+  border-radius: 24rpx;
   text-align: center;
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
-  margin-top: 32rpx;
-  transition: all 0.2s;
+  margin-top: 24rpx;
+  line-height: 96rpx;
+  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.2);
 }
 
 .register-btn:active {
-  background: #1a6ec7;
-  transform: translateY(1rpx);
+  transform: translateY(2rpx);
 }
 
 .register-btn:disabled {
-  background: #9B9A97;
-  opacity: 0.6;
+  background: #cbd5e1;
+  opacity: 0.9;
+  box-shadow: none;
+}
+
+@media screen and (min-width: 768px) {
+  .page {
+    padding: 48px 24px 64px;
+  }
+
+  .page-shell {
+    max-width: 440px;
+  }
+
+  .header {
+    margin-bottom: 28px;
+  }
+
+  .logo-icon {
+    width: 72px;
+    height: 72px;
+    line-height: 72px;
+    font-size: 38px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+
+  .title {
+    font-size: 28px;
+  }
+
+  .subtitle,
+  .section-label {
+    font-size: 14px;
+  }
+
+  .form-section {
+    max-width: none;
+    padding: 24px;
+    border-radius: 24px;
+  }
+
+  .input {
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  .register-btn {
+    min-height: 48px;
+    line-height: 48px;
+    font-size: 15px;
+    border-radius: 14px;
+    margin-top: 18px;
+  }
 }
 </style>

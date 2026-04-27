@@ -1,7 +1,8 @@
 <template>
   <view class="page">
-    <!-- 未登录状态 -->
-    <view v-if="!user" class="login-prompt">
+    <view class="page-shell">
+      <!-- 未登录状态 -->
+      <view v-if="!user" class="login-prompt">
       <text class="prompt-icon">👤</text>
       <text class="prompt-title">你还未登录</text>
       <text class="prompt-text">登录后可以查看和管理自己的发布记录</text>
@@ -103,6 +104,7 @@
       </view>
 
       <view class="bottom-safe"></view>
+      </view>
     </view>
   </view>
 </template>
@@ -223,119 +225,136 @@ export default {
 <style scoped>
 .page {
   min-height: 100vh;
-  background: #FBFBFA;
-  padding-bottom: 120rpx;
+  padding: 0 20rpx 160rpx;
 }
 
-/* 未登录状态 */
+.page-shell {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
 .login-prompt {
+  margin: 40rpx 0 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 120rpx 40rpx;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 16rpx 44rpx rgba(15, 23, 42, 0.06);
 }
 
 .prompt-icon {
   font-size: 120rpx;
   margin-bottom: 32rpx;
-  opacity: 0.3;
+  opacity: 0.35;
 }
 
 .prompt-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 12rpx;
 }
 
 .prompt-text {
   font-size: 28rpx;
-  color: #9B9A97;
+  color: #94a3b8;
   text-align: center;
   margin-bottom: 40rpx;
 }
 
 .login-btn {
   padding: 24rpx 60rpx;
-  background: #2383E2;
-  color: #FFFFFF;
-  border-radius: 6rpx;
+  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
+  color: #ffffff;
+  border-radius: 999rpx;
   font-size: 28rpx;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
-  transition: all 0.2s;
+  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.2);
 }
 
 .login-btn:active {
-  background: #1a6ec7;
-  transform: translateY(1rpx);
+  transform: translateY(2rpx);
 }
-/* 用户信息区域 */
+
 .user-section {
+  margin: 28rpx 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60rpx 40rpx 40rpx;
+  padding: 54rpx 40rpx 40rpx;
+  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(255, 255, 255, 0.96) 58%, rgba(236, 242, 255, 0.98) 100%);
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 18rpx 54rpx rgba(15, 23, 42, 0.08);
 }
 
 .avatar-large {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 60rpx;
-  background: #37352F;
-  color: #FFFFFF;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 64rpx;
+  background: linear-gradient(135deg, #4f7cff 0%, #7c3aed 100%);
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 56rpx;
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 24rpx;
+  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.22);
 }
 
 .user-name {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 8rpx;
 }
 
 .user-info {
   font-size: 26rpx;
-  color: #9B9A97;
+  color: #64748b;
   margin-bottom: 24rpx;
 }
 
 .logout-btn {
-  padding: 12rpx 32rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
-  font-size: 26rpx;
-  color: #787774;
-  transition: all 0.2s;
+  padding: 14rpx 34rpx;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 999rpx;
+  font-size: 25rpx;
+  color: #64748b;
 }
 
 .logout-btn:active {
-  background: #F5F5F4;
+  background: rgba(248, 250, 252, 0.95);
 }
-/* 管理员入口 */
+
+.admin-section,
+.list-section {
+  padding: 0;
+}
+
 .admin-section {
-  padding: 0 40rpx;
-  margin-bottom: 48rpx;
+  margin-bottom: 28rpx;
 }
 
 .admin-card {
   display: flex;
   align-items: center;
-  padding: 24rpx;
-  background: #FFF9E6;
-  border: 1rpx solid #FFE8A3;
-  border-radius: 6rpx;
-  transition: all 0.2s;
+  padding: 26rpx;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1rpx solid rgba(245, 158, 11, 0.16);
+  border-radius: 26rpx;
+  box-shadow: 0 12rpx 34rpx rgba(245, 158, 11, 0.08);
 }
 
 .admin-card:active {
-  background: #FFF4CC;
+  transform: translateY(-2rpx);
 }
 
 .admin-icon {
@@ -351,31 +370,30 @@ export default {
 
 .admin-title {
   font-size: 28rpx;
-  font-weight: 600;
-  color: #37352F;
+  font-weight: 700;
+  color: #1f2937;
   margin-bottom: 4rpx;
 }
 
 .admin-desc {
   font-size: 24rpx;
-  color: #9B9A97;
+  color: #b45309;
 }
 
 .admin-arrow {
   font-size: 32rpx;
-  color: #9B9A97;
+  color: #b45309;
 }
-/* 列表区域 */
+
 .list-section {
-  padding: 0 40rpx;
-  margin-bottom: 36rpx;
+  margin-bottom: 30rpx;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
 }
 
 .section-label-row {
@@ -385,12 +403,11 @@ export default {
 }
 
 .section-label {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #37352F;
-  margin-bottom: 20rpx;
-  text-transform: uppercase;
-  letter-spacing: 0.5rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 18rpx;
+  letter-spacing: 1rpx;
 }
 
 .section-header .section-label {
@@ -398,12 +415,12 @@ export default {
 }
 
 .notify-badge {
-  min-width: 34rpx;
-  height: 34rpx;
+  min-width: 36rpx;
+  height: 36rpx;
   padding: 0 10rpx;
-  border-radius: 17rpx;
-  background: #E5484D;
-  color: #FFFFFF;
+  border-radius: 18rpx;
+  background: #ef4444;
+  color: #ffffff;
   font-size: 22rpx;
   display: flex;
   align-items: center;
@@ -412,7 +429,8 @@ export default {
 
 .mark-all-btn {
   font-size: 24rpx;
-  color: #2383E2;
+  color: #3d68eb;
+  font-weight: 600;
 }
 
 .notify-list,
@@ -425,21 +443,22 @@ export default {
 .notify-card,
 .item-card {
   padding: 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
-  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  border-radius: 26rpx;
+  transition: all 0.22s;
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.05);
 }
 
 .notify-card.unread {
-  border-color: #B6D7FF;
-  background: #F7FBFF;
+  border-color: rgba(79, 124, 255, 0.16);
+  background: rgba(79, 124, 255, 0.05);
 }
 
 .notify-card:active,
 .item-card:active {
-  transform: translateY(-2rpx);
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+  transform: translateY(-2rpx) scale(0.995);
+  box-shadow: 0 18rpx 40rpx rgba(15, 23, 42, 0.08);
 }
 
 .notify-top {
@@ -453,23 +472,23 @@ export default {
 .notify-title {
   flex: 1;
   font-size: 30rpx;
-  font-weight: 600;
-  color: #37352F;
-  line-height: 1.4;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.45;
 }
 
 .notify-dot {
   width: 16rpx;
   height: 16rpx;
   border-radius: 8rpx;
-  background: #E5484D;
+  background: #ef4444;
 }
 
 .notify-content {
   display: block;
   font-size: 26rpx;
-  line-height: 1.6;
-  color: #5F5E5B;
+  line-height: 1.7;
+  color: #64748b;
   margin-bottom: 16rpx;
 }
 
@@ -478,13 +497,14 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12rpx;
 }
 
 .notify-score,
 .item-time,
 .notify-time {
-  font-size: 24rpx;
-  color: #9B9A97;
+  font-size: 23rpx;
+  color: #94a3b8;
 }
 
 .item-top {
@@ -501,28 +521,36 @@ export default {
 .item-title {
   flex: 1;
   font-size: 30rpx;
-  font-weight: 600;
-  color: #37352F;
-  line-height: 1.4;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.45;
 }
 
 .item-status {
-  padding: 6rpx 16rpx;
-  border-radius: 4rpx;
-  font-size: 24rpx;
-  font-weight: 500;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
 }
 
 .item-status.open {
-  background: #E3F2FD;
-  color: #2383E2;
+  background: rgba(79, 124, 255, 0.1);
+  color: #3d68eb;
 }
 
 .item-status.resolved {
-  background: #E8F5E9;
-  color: #0F7B6C;
+  background: rgba(34, 197, 94, 0.12);
+  color: #15803d;
 }
-/* 空状态 */
+
+.empty-state,
+.empty-mini {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1rpx solid rgba(148, 163, 184, 0.14);
+  border-radius: 28rpx;
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -532,14 +560,11 @@ export default {
 
 .empty-mini {
   padding: 28rpx 24rpx;
-  background: #FFFFFF;
-  border: 1rpx solid #E9E9E7;
-  border-radius: 6rpx;
 }
 
 .empty-mini-text {
   font-size: 26rpx;
-  color: #9B9A97;
+  color: #94a3b8;
 }
 
 .empty-icon {
@@ -550,16 +575,78 @@ export default {
 
 .empty-text {
   font-size: 32rpx;
-  color: #37352F;
+  color: #1f2937;
   margin-bottom: 12rpx;
+  font-weight: 600;
 }
 
 .empty-hint {
   font-size: 26rpx;
-  color: #9B9A97;
+  color: #94a3b8;
 }
 
 .bottom-safe {
   height: 40rpx;
+}
+
+@media screen and (min-width: 768px) {
+  .page {
+    padding: 24px 24px 180px;
+  }
+
+  .login-prompt,
+  .user-section {
+    border-radius: 24px;
+  }
+
+  .prompt-title,
+  .user-name {
+    font-size: 24px;
+  }
+
+  .prompt-text,
+  .user-info,
+  .notify-content,
+  .empty-hint,
+  .empty-mini-text {
+    font-size: 14px;
+  }
+
+  .login-btn,
+  .admin-title,
+  .notify-title,
+  .item-title,
+  .empty-text {
+    font-size: 16px;
+  }
+
+  .section-label,
+  .admin-desc,
+  .mark-all-btn,
+  .notify-score,
+  .item-time,
+  .notify-time,
+  .item-status {
+    font-size: 13px;
+  }
+
+  .notify-list,
+  .item-list {
+    gap: 14px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .notify-list,
+  .item-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .notify-card,
+  .item-card {
+    height: 100%;
+  }
 }
 </style>

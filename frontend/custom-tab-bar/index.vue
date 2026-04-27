@@ -42,16 +42,21 @@ export default {
 <style scoped>
 .tabbar {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 120rpx;
-  background-color: #FFFFFF;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 48rpx);
+  max-width: 760px;
+  bottom: 24rpx;
+  height: 112rpx;
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
-  border-top: 1rpx solid #E9E9E7;
-  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.04);
+  border: 1rpx solid rgba(148, 163, 184, 0.18);
+  border-radius: 32rpx;
+  box-shadow: 0 18rpx 60rpx rgba(15, 23, 42, 0.12);
   z-index: 999;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 10rpx;
+  padding-bottom: calc(10rpx + env(safe-area-inset-bottom));
+  backdrop-filter: blur(18rpx);
 }
 
 .tab-item {
@@ -61,29 +66,56 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 6rpx;
-  transition: all 0.2s;
+  border-radius: 24rpx;
+  transition: all 0.22s;
 }
 
 .tab-icon {
-  font-size: 40rpx;
-  opacity: 0.5;
-  transition: all 0.2s;
+  font-size: 38rpx;
+  opacity: 0.62;
+  transition: all 0.22s;
 }
 
 .tab-text {
-  font-size: 24rpx;
-  color: #9B9A97;
-  transition: all 0.2s;
+  font-size: 22rpx;
+  color: #94a3b8;
+  transition: all 0.22s;
+}
+
+.tab-item.active {
+  background: linear-gradient(135deg, rgba(79, 124, 255, 0.12) 0%, rgba(110, 168, 255, 0.18) 100%);
 }
 
 .tab-item.active .tab-icon {
   opacity: 1;
-  transform: scale(1.1);
+  transform: scale(1.08);
 }
 
 .tab-item.active .tab-text {
-  color: #37352F;
-  font-weight: 500;
+  color: #335fe3;
+  font-weight: 600;
+}
+
+@media screen and (min-width: 768px) {
+  .tabbar {
+    max-width: 760px;
+    height: 78px;
+    padding: 8px;
+    border-radius: 26px;
+  }
+
+  .tab-item {
+    gap: 4px;
+    border-radius: 18px;
+  }
+
+  .tab-icon {
+    font-size: 24px;
+  }
+
+  .tab-text {
+    font-size: 12px;
+  }
 }
 </style>
 
