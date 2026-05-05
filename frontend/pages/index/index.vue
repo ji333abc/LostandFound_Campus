@@ -3,11 +3,12 @@
     <view class="m3-shell">
       <view class="home-hero m3-card">
         <view class="hero-main">
-          <view>
+          <view class="hero-copy">
             <text class="eyebrow">Campus Lost & Found</text>
             <text class="m3-title">校园失物招领</text>
             <text class="m3-subtitle">{{ subtitle }}</text>
           </view>
+          <image class="hero-logo" src="/static/logo.png" mode="aspectFit" />
         </view>
 
         <view class="hero-stats">
@@ -324,9 +325,21 @@ export default {
 
 .hero-main {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 24rpx;
+}
+
+.hero-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-logo {
+  display: block;
+  flex-shrink: 0;
+  width: 132rpx;
+  height: 126rpx;
 }
 
 .eyebrow {

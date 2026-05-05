@@ -9,7 +9,11 @@
         @tap="switchTab(item.pagePath)"
       >
         <view class="icon-pill">
-          <text class="tab-symbol">{{ item.symbol }}</text>
+          <image
+            class="tab-icon"
+            :src="selected === index ? item.selectedIconPath : item.iconPath"
+            mode="aspectFit"
+          />
         </view>
         <text class="tab-label">{{ item.text }}</text>
       </view>
@@ -27,17 +31,20 @@ export default {
         {
           pagePath: 'pages/index/index',
           text: '首页',
-          symbol: '⌂'
+          iconPath: '/static/index.png',
+          selectedIconPath: '/static/index-active.png'
         },
         {
           pagePath: 'pages/publish/publish',
           text: '发布',
-          symbol: '+'
+          iconPath: '/static/publish.png',
+          selectedIconPath: '/static/publish-active.png'
         },
         {
           pagePath: 'pages/my/my',
           text: '我的',
-          symbol: '○'
+          iconPath: '/static/my.png',
+          selectedIconPath: '/static/my-active.png'
         }
       ]
     };
@@ -108,11 +115,10 @@ export default {
   border-radius: 999rpx;
 }
 
-.tab-symbol {
-  color: inherit;
-  font-size: 36rpx;
-  font-weight: 800;
-  line-height: 1;
+.tab-icon {
+  display: block;
+  width: 40rpx;
+  height: 40rpx;
 }
 
 .tab-label {
