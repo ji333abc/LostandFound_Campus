@@ -40,7 +40,9 @@ frontend/common/config.js
 
 # Local test / debug files
 backend/1.txt
-
+.crush.json
+.claude/
+AGENTS.md
 # Temporary files
 *.tmp
 *.temp
