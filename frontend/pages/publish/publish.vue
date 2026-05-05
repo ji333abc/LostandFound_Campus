@@ -1,150 +1,235 @@
 <template>
-  <view class="page">
-    <view class="page-shell">
-      <!-- 顶部标题 -->
-      <view class="header">
-        <view class="header-title">发布信息</view>
-        <view class="header-subtitle">帮助更多人找回失物</view>
+  <view class="m3-page tab-page">
+    <view class="m3-shell">
+      <view class="publish-hero m3-card">
+        <text class="m3-title">发布信息</text>
+        <text class="m3-subtitle">补充清晰的时间、地点和照片，系统会自动生成可能匹配提醒。</text>
       </view>
 
-      <!-- 类型选择 -->
-      <view class="section">
-          <view class="section-label">选择类型</view>
-      <view class="type-selector">
-        <view 
-          :class="['type-option', form.type === 'lost' ? 'active' : '']"
-          @click="selectType('lost')"
-        >
-          <text class="type-emoji">🔍</text>
-          <text class="type-text">寻物启事</text>
-        </view>
-        <view 
-          :class="['type-option', form.type === 'found' ? 'active' : '']"
-          @click="selectType('found')"
-        >
-          <text class="type-emoji">🎁</text>
-          <text class="type-text">失物招领</text>
+      <view v-if="!loggedIn" class="m3-card login-card">
+        <text class="login-title">登录后发布</text>
+        <text class="login-desc">账号用于管理发布、接收匹配通知和评论互动。</text>
+        <view class="login-actions">
+          <button class="m3-btn" @tap="goLogin">登录</button>
+          <button class="m3-btn secondary" @tap="goRegister">注册</button>
         </view>
       </view>
-    </view>
 
-    <!-- 基本信息 -->
-    <view class="section">
-      <view class="section-label">基本信息</view>
-      <input 
-        class="input" 
-        v-model="form.title" 
-        placeholder="物品名称（必填）"
-      />
-      <input 
-        class="input" 
-        v-model="form.category" 
-        placeholder="物品分类（如：证件、电子产品）"
-      />
-    </view>
-
-    <!-- 时间地点 -->
-    <view class="section">
-      <view class="section-label">时间地点</view>
-      <input 
-        class="input" 
-        v-model="form.location" 
-        placeholder="丢失/捡到地点"
-      />
-      <picker mode="date" :value="form.time" @change="onDateChange">
-        <view class="date-picker">
-          <text class="date-label">日期</text>
-          <text class="date-value">{{ form.time || '请选择日期' }}</text>
-        </view>
-      </picker>
-    </view>
-
-    <!-- 图片上传 -->
-    <view class="section">
-      <view class="section-label-row">
-        <view class="section-label">添加图片（最多{{ maxImages }}张）</view>
-        <view class="ai-controls" v-if="images.length > 0">
-          <view class="mode-switch">
+      <view v-else class="m3-card form-card">
+        <view class="m3-field first-field">
+          <text class="m3-label">信息类型</text>
+          <view class="m3-segment">
             <view
-              :class="['mode-chip', recognizeMode === 'short' ? 'active' : '']"
-              @click="setRecognizeMode('short')"
-            >简短</view>
+              class="m3-segment-item"
+              :class="{ active: form.type === 'lost' }"
+              @tap="form.type = 'lost'"
+            >
+              <text>寻物</text>
+            </view>
             <view
-              :class="['mode-chip', recognizeMode === 'detailed' ? 'active' : '']"
-              @click="setRecognizeMode('detailed')"
-            >详细</view>
-          </view>
-          <button 
-            class="ai-recognize-btn" 
-            :disabled="recognizing"
-            @click="recognizeImage"
-          >
-            <text v-if="!recognizing">🤖 AI识别</text>
-            <text v-else>识别中...</text>
-          </button>
-        </view>
-      </view>
-      <view class="image-list">
-        <view v-for="(img, index) in images" :key="index" class="image-wrapper">
-          <image :src="img" mode="aspectFill" class="image"></image>
-          <view class="image-delete" @click.stop="removeImage(index)">×</view>
-        </view>
-        <view v-if="images.length < maxImages" class="image-add" @click="chooseImage">
-          <view v-if="!uploading" class="add-content">
-            <text class="add-icon">📷</text>
-            <text class="add-text">添加图片</text>
-          </view>
-          <view v-else class="uploading-content">
-            <view class="uploading-spinner"></view>
-            <text class="uploading-text">上传中</text>
+              class="m3-segment-item"
+              :class="{ active: form.type === 'found' }"
+              @tap="form.type = 'found'"
+            >
+              <text>招领</text>
+            </view>
           </view>
         </view>
-      </view>
-    </view>
 
-    <!-- 详细描述 -->
-    <view class="section">
-      <view class="section-label">详细描述</view>
-      <textarea 
-        class="textarea" 
-        v-model="form.description" 
-        @input="onDescriptionInput"
-        placeholder="请详细描述物品特征、丢失/捡到经过等信息..."
-      ></textarea>
-      <view v-if="aiDescriptionGenerated" class="ai-tip">
-        AI识别结果仅供参考，请核对并补充细节后再发布{{ aiDescriptionEdited ? '（已手动编辑）' : '' }}
-      </view>
-    </view>
+        <view class="m3-field">
+          <text class="m3-label">标题</text>
+          <input
+            class="m3-input"
+            v-model="form.title"
+            maxlength="100"
+            placeholder="例如：黑色校园卡包"
+          />
+        </view>
 
-    <!-- 联系方式 -->
-    <view class="section">
-      <view class="section-label">联系方式</view>
-      <input 
-        class="input" 
-        v-model="form.contact" 
-        placeholder="请输入电话或微信号"
-      />
-    </view>
+        <view class="m3-field">
+          <text class="m3-label">分类</text>
+          <view class="select-picker" @tap="openSelectDialog('category')">
+            <view class="select-field">
+              <text class="select-value">{{ form.category }}</text>
+              <view class="select-affix">
+                <view class="select-chevron"></view>
+              </view>
+            </view>
+          </view>
+        </view>
 
-      <!-- 发布按钮 -->
-      <view class="submit-section">
-        <button class="submit-btn" :disabled="submitting" @click="submit">
-          <text v-if="!submitting">立即发布</text>
-          <text v-else>发布中...</text>
+        <view class="m3-field">
+          <view class="label-row">
+            <text class="m3-label">照片</text>
+            <text class="field-hint">{{ localImages.length }}/{{ maxImages }}</text>
+          </view>
+          <view class="upload-grid">
+            <view
+              v-for="(image, index) in localImages"
+              :key="image.url"
+              class="upload-tile"
+              @tap="previewImage(index)"
+            >
+              <image class="upload-preview" :src="image.fullUrl || image.localPath" mode="aspectFill" />
+              <button class="remove-image" @tap.stop="removeImage(index)">×</button>
+            </view>
+            <view
+              v-if="localImages.length < maxImages"
+              class="upload-tile add-tile"
+              @tap="chooseImages"
+            >
+              <text class="add-symbol">+</text>
+              <text class="add-text">{{ uploading ? '上传中' : '添加照片' }}</text>
+            </view>
+          </view>
+          <view v-if="localImages.length > 0" class="ai-toolbar">
+            <button
+              class="m3-btn secondary ai-btn"
+              :class="{ disabled: recognizing }"
+              :disabled="recognizing"
+              @tap="openAiDialog"
+            >
+              {{ recognizing ? '识别中' : 'AI 识别' }}
+            </button>
+          </view>
+        </view>
+
+        <view class="m3-field">
+          <text class="m3-label">描述</text>
+          <textarea
+            class="m3-textarea"
+            v-model="form.description"
+            maxlength="500"
+            placeholder="颜色、材质、外观特征、明显细节"
+          />
+        </view>
+
+        <view class="form-split">
+          <view class="m3-field split-item">
+            <text class="m3-label">地点</text>
+            <input class="m3-input" v-model="form.location" placeholder="例如：图书馆二楼" />
+          </view>
+          <view class="m3-field split-item">
+            <text class="m3-label">联系方式</text>
+            <input class="m3-input" v-model="form.contact" :placeholder="contactPlaceholder" />
+          </view>
+        </view>
+
+        <view class="form-split">
+          <view class="m3-field split-item">
+            <text class="m3-label">日期</text>
+            <view class="select-picker" @tap="openSelectDialog('date')">
+              <view class="select-field">
+                <text class="select-value">{{ dateValue }}</text>
+                <view class="select-affix">
+                  <view class="select-chevron"></view>
+                </view>
+              </view>
+            </view>
+          </view>
+          <view class="m3-field split-item">
+            <text class="m3-label">时间</text>
+            <view class="select-picker" @tap="openSelectDialog('time')">
+              <view class="select-field">
+                <text class="select-value">{{ timeValue }}</text>
+                <view class="select-affix">
+                  <view class="select-chevron"></view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <button
+          class="m3-btn submit-btn"
+          :class="{ disabled: submitting || uploading }"
+          :disabled="submitting || uploading"
+          @tap="submit"
+        >
+          {{ submitting ? '发布中' : '确认发布' }}
         </button>
       </view>
 
-      <view class="bottom-safe"></view>
-    </view>
+      <view v-if="aiDialogVisible" class="ai-dialog-mask" @tap="closeAiDialog">
+        <view class="ai-dialog m3-card" @tap.stop>
+          <view class="ai-dialog-head">
+            <view>
+              <text class="ai-dialog-title">AI 识别</text>
+              <text class="ai-dialog-subtitle">选择生成长度</text>
+            </view>
+          </view>
 
-    <view v-if="showLoginDialog" class="dialog-mask" @click="closeLoginDialog">
-      <view class="login-dialog" @click.stop>
-        <view class="dialog-icon">🔐</view>
-        <view class="dialog-title">请先登录</view>
-        <view class="dialog-text">登录后才可以发布信息、上传图片并与他人联系。</view>
-        <view class="dialog-actions">
-          <view class="dialog-btn dialog-btn-secondary" @click="closeLoginDialog">稍后再说</view>
-          <view class="dialog-btn dialog-btn-primary" @click="goLogin">去登录</view>
+          <view class="ai-choice-row">
+            <button
+              class="ai-choice"
+              :class="{ active: aiMode === 'short', disabled: recognizing }"
+              :disabled="recognizing"
+              @tap="recognizeImage('short')"
+            >
+              {{ recognizing && aiMode === 'short' ? '生成中' : '简略' }}
+            </button>
+            <button
+              class="ai-choice"
+              :class="{ active: aiMode === 'detailed', disabled: recognizing }"
+              :disabled="recognizing"
+              @tap="recognizeImage('detailed')"
+            >
+              {{ recognizing && aiMode === 'detailed' ? '生成中' : '详细' }}
+            </button>
+          </view>
+
+          <textarea
+            class="m3-textarea ai-draft"
+            v-model="aiDraft"
+            maxlength="500"
+            placeholder="识别结果会显示在这里"
+          />
+
+          <view class="ai-dialog-actions">
+            <button class="m3-btn text ai-action" @tap="closeAiDialog">取消</button>
+            <button
+              class="m3-btn ai-action"
+              :class="{ disabled: recognizing || !aiDraft.trim() }"
+              :disabled="recognizing || !aiDraft.trim()"
+              @tap="insertAiDescription"
+            >
+              填入
+            </button>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="selectDialogVisible" class="select-dialog-mask" @tap="closeSelectDialog">
+        <view class="select-dialog m3-card" @tap.stop>
+          <view class="select-dialog-head">
+            <text class="select-dialog-title">{{ selectDialogTitle }}</text>
+            <text class="select-dialog-value">{{ selectDialogValue }}</text>
+          </view>
+
+          <picker-view
+            class="select-wheel"
+            :value="selectPickerValue"
+            indicator-class="select-wheel-indicator"
+            @change="onSelectPickerChange"
+          >
+            <picker-view-column
+              v-for="(column, columnIndex) in selectDialogColumns"
+              :key="columnIndex"
+            >
+              <view
+                v-for="(option, optionIndex) in column"
+                :key="columnIndex + '-' + optionIndex"
+                class="select-option"
+              >
+                <text>{{ option }}</text>
+              </view>
+            </picker-view-column>
+          </picker-view>
+
+          <view class="select-dialog-actions">
+            <button class="m3-btn text select-action" @tap="closeSelectDialog">取消</button>
+            <button class="m3-btn select-action" @tap="confirmSelectDialog">确定</button>
+          </view>
         </view>
       </view>
     </view>
@@ -152,768 +237,808 @@
 </template>
 
 <script>
-import { request } from '@/common/request.js';
-import { API_UPLOAD_URL, MAX_UPLOAD_IMAGES, STATIC_BASE_URL } from '@/common/config.js';
+import { MAX_UPLOAD_IMAGES } from '../../common/config.js';
+import { request, uploadImage, isLoggedIn } from '../../common/request.js';
+import { categories, resolveAssetUrl, toastError } from '../../common/utils.js';
+
+function pad(value) {
+  const normalized = String(value);
+  return normalized.length >= 2 ? normalized : `0${normalized}`;
+}
+
+function today() {
+  const date = new Date();
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function nowTime() {
+  const date = new Date();
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function buildNumberRange(start, end) {
+  const values = [];
+  for (let value = start; value <= end; value += 1) {
+    values.push(value);
+  }
+  return values;
+}
+
+function buildYearOptions() {
+  const currentYear = new Date().getFullYear();
+  return buildNumberRange(currentYear - 5, currentYear + 1);
+}
+
+function getDaysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function parseDateParts(value) {
+  const parts = String(value || '').split('-').map((item) => Number(item));
+  if (parts.length !== 3 || parts.some((item) => !Number.isFinite(item))) {
+    const date = new Date();
+    return {
+      year: date.getFullYear(),
+      month: date.getMonth() + 1,
+      day: date.getDate()
+    };
+  }
+  return {
+    year: parts[0],
+    month: parts[1],
+    day: parts[2]
+  };
+}
+
+function parseTimeParts(value) {
+  const parts = String(value || '').split(':').map((item) => Number(item));
+  if (parts.length !== 2 || parts.some((item) => !Number.isFinite(item))) {
+    const date = new Date();
+    return {
+      hour: date.getHours(),
+      minute: date.getMinutes()
+    };
+  }
+  return {
+    hour: Math.max(0, Math.min(23, parts[0])),
+    minute: Math.max(0, Math.min(59, parts[1]))
+  };
+}
 
 export default {
   data() {
+    const yearOptions = buildYearOptions();
+    const monthOptions = buildNumberRange(1, 12);
+    const dateParts = parseDateParts(today());
     return {
-      typeOptions: [
-        { value: 'lost', label: '寻物启事（我丢了东西）' },
-        { value: 'found', label: '失物招领（我捡到东西）' }
-      ],
-      typeIndex: 0,
+      loggedIn: false,
+      maxImages: MAX_UPLOAD_IMAGES,
+      categories,
+      categoryIndex: 0,
+      dateValue: today(),
+      timeValue: nowTime(),
+      selectDialogVisible: false,
+      selectDialogType: '',
+      selectPickerValue: [0],
+      yearOptions,
+      monthOptions,
+      dayOptions: buildNumberRange(1, getDaysInMonth(dateParts.year, dateParts.month)),
+      hourOptions: buildNumberRange(0, 23),
+      minuteOptions: buildNumberRange(0, 59),
       form: {
-        title: '',
         type: 'lost',
-        category: '',
+        title: '',
+        category: categories[0],
         description: '',
         location: '',
-        time: '',
-        contact: ''
+        contact: '',
+        images: []
       },
-      images: [],
+      localImages: [],
       uploading: false,
-      submitting: false,
       recognizing: false,
-      maxImages: MAX_UPLOAD_IMAGES,
-      recognizeCooldownMs: 2500,
-      lastRecognizeAt: 0,
-      aiDescriptionGenerated: false,
-      aiDescriptionEdited: false,
-      recognizeMode: 'detailed',
-      showLoginDialog: false
-    }
+      aiMode: '',
+      aiDialogVisible: false,
+      aiDraft: '',
+      submitting: false,
+      lastRecognizeAt: 0
+    };
   },
   computed: {
-    currentTypeLabel() {
-      return this.typeOptions[this.typeIndex].label;
+    contactPlaceholder() {
+      return this.form.type === 'lost' ? '便于拾到者联系你' : '便于失主联系你';
+    },
+    selectDialogTitle() {
+      const titleMap = {
+        category: '选择分类',
+        date: '选择日期',
+        time: '选择时间'
+      };
+      return titleMap[this.selectDialogType] || '';
+    },
+    selectDialogColumns() {
+      if (this.selectDialogType === 'category') {
+        return [this.categories];
+      }
+      if (this.selectDialogType === 'date') {
+        return [
+          this.yearOptions.map((item) => `${item} 年`),
+          this.monthOptions.map((item) => `${pad(item)} 月`),
+          this.dayOptions.map((item) => `${pad(item)} 日`)
+        ];
+      }
+      if (this.selectDialogType === 'time') {
+        return [
+          this.hourOptions.map((item) => `${pad(item)} 时`),
+          this.minuteOptions.map((item) => `${pad(item)} 分`)
+        ];
+      }
+      return [];
+    },
+    selectDialogValue() {
+      if (this.selectDialogType === 'category') {
+        const categoryIndex = this.selectPickerValue[0] || 0;
+        return this.categories[categoryIndex] || '';
+      }
+      if (this.selectDialogType === 'date') {
+        const year = this.yearOptions[this.selectPickerValue[0] || 0];
+        const month = this.monthOptions[this.selectPickerValue[1] || 0];
+        const day = this.dayOptions[this.selectPickerValue[2] || 0];
+        return year && month && day ? `${year}-${pad(month)}-${pad(day)}` : '';
+      }
+      if (this.selectDialogType === 'time') {
+        const hour = this.hourOptions[this.selectPickerValue[0] || 0];
+        const minute = this.minuteOptions[this.selectPickerValue[1] || 0];
+        return `${pad(hour || 0)}:${pad(minute || 0)}`;
+      }
+      return '';
     }
   },
   onShow() {
-    const token = uni.getStorageSync('token');
-    this.showLoginDialog = !token;
-    this.getTabBar && this.getTabBar().setSelected(1);
+    this.setTabBarIndex();
+    this.loggedIn = isLoggedIn();
   },
   methods: {
-    promptLogin() {
-      this.showLoginDialog = true;
-    },
-    closeLoginDialog() {
-      this.showLoginDialog = false;
-    },
-    goLogin() {
-      this.showLoginDialog = false;
-      uni.navigateTo({ url: '/pages/login/login' });
-    },
-    selectType(type) {
-      this.form.type = type;
-      this.typeIndex = type === 'lost' ? 0 : 1;
-    },
-    onTypeChange(e) {
-      this.typeIndex = Number(e.detail.value);
-      this.form.type = this.typeOptions[this.typeIndex].value;
-    },
-    onDateChange(e) {
-      this.form.time = e.detail.value;
-    },
-    onDescriptionInput() {
-      if (this.aiDescriptionGenerated) {
-        this.aiDescriptionEdited = true;
+    setTabBarIndex() {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setSelected(1);
       }
     },
-    setRecognizeMode(mode) {
-      this.recognizeMode = mode === 'short' ? 'short' : 'detailed';
-    },
-    removeImage(index) {
-      this.images.splice(index, 1);
-    },
-    async recognizeImage() {
-      if (this.images.length === 0) {
-        return uni.showToast({ title: '请先上传图片', icon: 'none' });
+    openSelectDialog(type) {
+      this.selectDialogType = type;
+      if (type === 'category') {
+        this.selectPickerValue = [this.categoryIndex];
+      } else if (type === 'date') {
+        const parts = parseDateParts(this.dateValue);
+        let yearIndex = this.yearOptions.indexOf(parts.year);
+        if (yearIndex < 0) {
+          this.yearOptions = this.yearOptions.concat(parts.year).sort((a, b) => a - b);
+          yearIndex = this.yearOptions.indexOf(parts.year);
+        }
+        const monthIndex = Math.max(0, this.monthOptions.indexOf(parts.month));
+        this.updateDayOptions(parts.year, parts.month);
+        const dayIndex = Math.max(0, Math.min(this.dayOptions.length - 1, parts.day - 1));
+        this.selectPickerValue = [yearIndex, monthIndex, dayIndex];
+      } else if (type === 'time') {
+        const parts = parseTimeParts(this.timeValue);
+        this.selectPickerValue = [parts.hour, parts.minute];
       }
-      
-      if (this.recognizing) return;
-
-      const now = Date.now();
-      const elapsed = now - this.lastRecognizeAt;
-      if (elapsed < this.recognizeCooldownMs) {
-        const waitSec = ((this.recognizeCooldownMs - elapsed) / 1000).toFixed(1);
-        return uni.showToast({ title: `操作太快，请${waitSec}秒后重试`, icon: 'none' });
-      }
-      this.lastRecognizeAt = now;
-      
-      this.recognizing = true;
-      let loadingShown = false;
-      uni.showLoading({ title: 'AI识别中...' });
-      loadingShown = true;
-      
-      try {
-        // 使用第一张图片进行识别
-        const imageUrl = this.images[0].replace(STATIC_BASE_URL, '');
-        
-        const result = await request({
-          url: '/ai/recognize',
-          method: 'POST',
-          data: {
-            imageUrl,
-            mode: this.recognizeMode,
-            maxChars: this.recognizeMode === 'short' ? 80 : 180
-          }
-        });
-
-        // 先关闭 loading，再弹 toast，避免 showLoading/hideLoading 配对告警
-        if (loadingShown) {
-          uni.hideLoading();
-          loadingShown = false;
-        }
-        
-        if (result.description) {
-          // 将AI生成的描述填入描述框
-          this.form.description = result.description;
-          this.aiDescriptionGenerated = true;
-          this.aiDescriptionEdited = false;
-          uni.showToast({ 
-            title: result.truncated ? 'AI识别成功（已压缩长度）' : 'AI识别成功', 
-            icon: 'success',
-            duration: 1500
-          });
-        }
-      } catch (e) {
-        // 先关闭 loading，再弹 toast，避免 showLoading/hideLoading 配对告警
-        if (loadingShown) {
-          uni.hideLoading();
-          loadingShown = false;
-        }
-
-        const errorMsg = e.data?.message || e.message || 'AI识别失败，请稍后重试';
-        uni.showToast({ 
-          title: errorMsg, 
-          icon: 'none',
-          duration: 2500
-        });
-      } finally {
-        this.recognizing = false;
-        if (loadingShown) {
-          uni.hideLoading();
-        }
-      }
+      this.selectDialogVisible = true;
     },
-    async chooseImage() {
-      const token = uni.getStorageSync('token');
-      if (!token) {
-        this.promptLogin();
+    closeSelectDialog() {
+      this.selectDialogVisible = false;
+    },
+    updateDayOptions(year, month) {
+      this.dayOptions = buildNumberRange(1, getDaysInMonth(year, month));
+    },
+    onSelectPickerChange(event) {
+      const value = event.detail.value || [];
+      if (this.selectDialogType === 'category') {
+        this.selectPickerValue = [value[0] || 0];
         return;
       }
-
-      if (this.images.length >= MAX_UPLOAD_IMAGES) {
-        return uni.showToast({ title: `最多上传${MAX_UPLOAD_IMAGES}张图片`, icon: 'none' });
+      if (this.selectDialogType === 'date') {
+        const yearIndex = value[0] || 0;
+        const monthIndex = value[1] || 0;
+        const year = this.yearOptions[yearIndex] || this.yearOptions[0];
+        const month = this.monthOptions[monthIndex] || 1;
+        const previousDayIndex = value[2] || 0;
+        this.updateDayOptions(year, month);
+        const dayIndex = Math.max(0, Math.min(this.dayOptions.length - 1, previousDayIndex));
+        this.selectPickerValue = [yearIndex, monthIndex, dayIndex];
+        return;
       }
+      if (this.selectDialogType === 'time') {
+        this.selectPickerValue = [value[0] || 0, value[1] || 0];
+      }
+    },
+    confirmSelectDialog() {
+      if (this.selectDialogType === 'category') {
+        const index = this.selectPickerValue[0] || 0;
+        this.categoryIndex = index;
+        this.form.category = this.categories[index] || this.categories[0];
+      } else if (this.selectDialogType === 'date') {
+        const year = this.yearOptions[this.selectPickerValue[0] || 0];
+        const month = this.monthOptions[this.selectPickerValue[1] || 0];
+        const day = this.dayOptions[this.selectPickerValue[2] || 0];
+        this.dateValue = `${year}-${pad(month)}-${pad(day)}`;
+      } else if (this.selectDialogType === 'time') {
+        const hour = this.hourOptions[this.selectPickerValue[0] || 0];
+        const minute = this.minuteOptions[this.selectPickerValue[1] || 0];
+        this.timeValue = `${pad(hour || 0)}:${pad(minute || 0)}`;
+      }
+      this.closeSelectDialog();
+    },
+    openAiDialog() {
+      if (!this.localImages.length || this.recognizing) return;
+      this.aiDialogVisible = true;
+      this.aiMode = '';
+      if (!this.aiDraft && this.form.description) {
+        this.aiDraft = this.form.description;
+      }
+    },
+    closeAiDialog() {
+      if (this.recognizing) return;
+      this.aiDialogVisible = false;
+    },
+    goLogin() {
+      uni.navigateTo({
+        url: '/pages/login/login?redirect=%2Fpages%2Fpublish%2Fpublish'
+      });
+    },
+    goRegister() {
+      uni.navigateTo({
+        url: '/pages/register/register'
+      });
+    },
+    chooseImages() {
+      if (this.uploading) return;
 
+      const count = this.maxImages - this.localImages.length;
       uni.chooseImage({
-        count: MAX_UPLOAD_IMAGES - this.images.length,
-        success: (res) => {
-          const files = res.tempFilePaths;
-          let uploadCount = 0;
+        count,
+        sizeType: ['compressed'],
+        sourceType: ['album', 'camera'],
+        success: async (res) => {
+          const files = res.tempFilePaths || [];
+          if (!files.length) return;
+
           this.uploading = true;
-          
-          files.forEach((filePath) => {
-            uni.uploadFile({
-              url: API_UPLOAD_URL,
-              filePath,
-              name: 'file',
-              header: {
-                Authorization: token
-              },
-              success: (uploadRes) => {
-                try {
-                  const data = JSON.parse(uploadRes.data);
-                  if (data.url) {
-                    this.images.push(`${STATIC_BASE_URL}${data.url}`);
-                  }
-                } catch (e) {
-                  uni.showToast({ title: '上传失败', icon: 'none' });
-                }
-              },
-              fail: () => {
-                uni.showToast({ title: '上传失败', icon: 'none' });
-              },
-              complete: () => {
-                uploadCount++;
-                if (uploadCount === files.length) {
-                  this.uploading = false;
-                }
-              }
-            });
-          });
+          try {
+            for (let i = 0; i < files.length; i += 1) {
+              const data = await uploadImage(files[i]);
+              const url = data.url;
+              this.localImages.push({
+                localPath: files[i],
+                url,
+                fullUrl: resolveAssetUrl(url)
+              });
+            }
+            this.form.images = this.localImages.map((item) => item.url);
+          } catch (error) {
+            toastError(error, '图片上传失败');
+          } finally {
+            this.uploading = false;
+          }
         }
       });
     },
-    async submit() {
-      const token = uni.getStorageSync('token');
-      if (!token) {
-        this.promptLogin();
+    removeImage(index) {
+      this.localImages.splice(index, 1);
+      this.form.images = this.localImages.map((item) => item.url);
+    },
+    previewImage(index) {
+      const urls = this.localImages.map((item) => item.fullUrl || item.localPath);
+      uni.previewImage({
+        current: urls[index],
+        urls
+      });
+    },
+    async recognizeImage(mode) {
+      if (!this.localImages.length || this.recognizing) return;
+
+      const now = Date.now();
+      if (now - this.lastRecognizeAt < 2500) {
+        uni.showToast({
+          title: '稍后再试',
+          icon: 'none'
+        });
         return;
       }
-      if (!this.form.title) {
-        return uni.showToast({ title: '请输入物品名称', icon: 'none' });
-      }
-      if (this.submitting) return;
-      this.submitting = true;
+
+      this.aiMode = mode;
+      this.recognizing = true;
+      this.lastRecognizeAt = now;
       try {
-        await request({
-          url: '/items',
+        const first = this.localImages[0];
+        const res = await request({
+          url: '/ai/recognize',
           method: 'POST',
           data: {
-            ...this.form,
-            images: this.images
+            imageUrl: first.url,
+            mode: this.aiMode,
+            maxChars: this.aiMode === 'detailed' ? 180 : 80
           }
         });
-        uni.showToast({ title: '发布成功', icon: 'success' });
-        setTimeout(() => {
-          uni.switchTab({ url: '/pages/index/index' });
-        }, 500);
-      } catch (e) {
-        // 显示后端返回的具体错误信息
-        const errorMsg = e.data?.message || e.message || '发布失败，请稍后重试';
-        uni.showToast({ 
-          title: errorMsg, 
-          icon: 'none',
-          duration: 2500
+
+        if (res.description) {
+          this.aiDraft = res.description;
+        }
+      } catch (error) {
+        toastError(error, 'AI 识别失败');
+      } finally {
+        this.recognizing = false;
+      }
+    },
+    insertAiDescription() {
+      const text = this.aiDraft.trim();
+      if (!text) {
+        uni.showToast({
+          title: '暂无识别内容',
+          icon: 'none'
         });
+        return;
+      }
+      this.form.description = text;
+      this.aiDialogVisible = false;
+    },
+    buildTimeValue() {
+      const value = new Date(`${this.dateValue}T${this.timeValue}:00`);
+      if (Number.isNaN(value.getTime())) {
+        return undefined;
+      }
+      return value.toISOString();
+    },
+    validate() {
+      if (!this.form.title.trim()) {
+        uni.showToast({ title: '请填写标题', icon: 'none' });
+        return false;
+      }
+      if (this.form.title.trim().length < 2) {
+        uni.showToast({ title: '标题至少 2 个字', icon: 'none' });
+        return false;
+      }
+      return true;
+    },
+    async submit() {
+      if (!this.validate() || this.submitting || this.uploading) {
+        return;
+      }
+
+      this.submitting = true;
+      try {
+        const payload = {
+          title: this.form.title.trim(),
+          type: this.form.type,
+          category: this.form.category,
+          description: this.form.description.trim(),
+          location: this.form.location.trim(),
+          contact: this.form.contact.trim(),
+          images: this.form.images,
+          time: this.buildTimeValue()
+        };
+
+        const res = await request({
+          url: '/items',
+          method: 'POST',
+          data: payload
+        });
+
+        uni.showToast({
+          title: '发布成功',
+          icon: 'success'
+        });
+
+        const id = res.data && res.data._id;
+        this.resetForm();
+
+        setTimeout(() => {
+          if (id) {
+            uni.navigateTo({
+              url: `/pages/detail/detail?id=${id}`
+            });
+          } else {
+            uni.switchTab({
+              url: '/pages/index/index'
+            });
+          }
+        }, 400);
+      } catch (error) {
+        toastError(error, '发布失败');
       } finally {
         this.submitting = false;
       }
+    },
+    resetForm() {
+      this.categoryIndex = 0;
+      this.dateValue = today();
+      this.timeValue = nowTime();
+      this.localImages = [];
+      this.aiMode = '';
+      this.aiDialogVisible = false;
+      this.aiDraft = '';
+      this.form = {
+        type: 'lost',
+        title: '',
+        category: this.categories[0],
+        description: '',
+        location: '',
+        contact: '',
+        images: []
+      };
     }
   }
-}
+};
 </script>
 
-<style scoped>
-.page {
-  min-height: 100vh;
-  padding: 0 20rpx 160rpx;
+<style>
+.publish-hero {
+  padding: 34rpx;
 }
 
-.page-shell {
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-}
-
-.header {
-  margin: 28rpx 0;
-  padding: 54rpx 38rpx;
-  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(255, 255, 255, 0.94) 58%, rgba(124, 58, 237, 0.08) 100%);
-  border-radius: 32rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 18rpx 54rpx rgba(15, 23, 42, 0.08);
-}
-
-.header-title {
-  font-size: 50rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 10rpx;
-  letter-spacing: -1rpx;
-}
-
-.header-subtitle {
-  font-size: 28rpx;
-  color: #64748b;
-}
-
-.section {
-  margin: 0 0 26rpx;
+.login-card,
+.form-card {
+  margin-top: 24rpx;
   padding: 30rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 28rpx;
-  box-shadow: 0 14rpx 40rpx rgba(15, 23, 42, 0.05);
 }
 
-.section-label {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 20rpx;
-  letter-spacing: 1rpx;
-}
-
-.section-label-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-  gap: 14rpx;
-}
-
-.section-label-row .section-label {
-  margin-bottom: 0;
-}
-
-.ai-controls {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.mode-switch {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.mode-chip {
-  padding: 10rpx 18rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.18);
-  border-radius: 999rpx;
-  color: #64748b;
-  background: rgba(248, 250, 252, 0.8);
-  font-size: 22rpx;
-  line-height: 1;
-}
-
-.mode-chip.active {
-  border-color: rgba(79, 124, 255, 0.22);
-  color: #3d68eb;
-  background: rgba(79, 124, 255, 0.1);
-}
-
-.ai-recognize-btn {
-  padding: 12rpx 24rpx;
-  background: linear-gradient(135deg, #7c3aed 0%, #4f7cff 100%);
-  color: #ffffff;
-  border-radius: 999rpx;
-  font-size: 24rpx;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 12rpx 30rpx rgba(79, 124, 255, 0.2);
-  display: flex;
-  align-items: center;
-  line-height: 1;
-}
-
-.ai-recognize-btn:active {
-  transform: translateY(2rpx);
-}
-
-.ai-recognize-btn:disabled {
-  background: #cbd5e1;
-  opacity: 0.8;
-  box-shadow: none;
-}
-
-.type-selector {
-  display: flex;
-  gap: 18rpx;
-}
-
-.type-option {
-  flex: 1;
-  padding: 34rpx 24rpx;
-  background: rgba(248, 250, 252, 0.85);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 24rpx;
-  text-align: center;
-  transition: all 0.22s;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.type-option.active {
-  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
-  border-color: transparent;
-  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.2);
-}
-
-.type-emoji {
-  font-size: 56rpx;
-  margin-bottom: 12rpx;
-}
-
-.type-text {
-  font-size: 28rpx;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.type-option.active .type-text {
-  color: #ffffff;
-}
-
-.input {
+.login-title {
   display: block;
+  color: #171d1b;
+  font-size: 34rpx;
+  font-weight: 760;
+}
+
+.login-desc {
+  display: block;
+  margin-top: 12rpx;
+  color: #60706a;
+  font-size: 26rpx;
+  line-height: 1.55;
+}
+
+.login-actions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 28rpx;
+}
+
+.first-field {
+  margin-top: 0;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-hint {
+  color: #60706a;
+  font-size: 23rpx;
+}
+
+.select-picker {
+  display: block;
+  width: 100%;
+}
+
+.select-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   width: 100%;
   min-height: 92rpx;
-  padding: 24rpx;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 22rpx;
+  padding: 0 18rpx 0 28rpx;
+  border: 1rpx solid #c1ccc6;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: inset 0 -1rpx 0 rgba(0, 106, 96, 0.08);
+}
+
+.select-value {
+  flex: 1;
+  min-width: 0;
+  color: #171d1b;
   font-size: 28rpx;
-  line-height: 1.4;
-  color: #1f2937;
-  margin-bottom: 16rpx;
-  transition: all 0.2s;
-  position: relative;
-  z-index: 2;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.input::placeholder {
-  color: #94a3b8;
-}
-
-.input:focus {
-  border-color: rgba(79, 124, 255, 0.42);
-  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
-}
-
-.date-picker {
+.select-affix {
+  flex: 0 0 auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 24rpx;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 22rpx;
+  justify-content: center;
+  width: 54rpx;
+  height: 54rpx;
+  margin-left: 18rpx;
+  border-radius: 999rpx;
+  background: #e5f2ed;
 }
 
-.date-label {
-  font-size: 28rpx;
-  color: #64748b;
+.select-chevron {
+  width: 14rpx;
+  height: 14rpx;
+  margin-top: -6rpx;
+  border-right: 3rpx solid #006a60;
+  border-bottom: 3rpx solid #006a60;
+  transform: rotate(45deg);
 }
 
-.date-value {
-  font-size: 28rpx;
-  color: #1f2937;
-  font-weight: 500;
-}
-
-.textarea {
-  display: block;
-  width: 100%;
-  padding: 24rpx;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 22rpx;
-  font-size: 28rpx;
-  color: #1f2937;
-  min-height: 240rpx;
-  line-height: 1.8;
-  transition: all 0.2s;
-  position: relative;
-  z-index: 2;
-}
-
-.textarea::placeholder {
-  color: #94a3b8;
-}
-
-.textarea:focus {
-  border-color: rgba(79, 124, 255, 0.42);
-  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
-}
-
-.ai-tip {
-  margin-top: 14rpx;
-  padding: 16rpx 20rpx;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1rpx solid rgba(245, 158, 11, 0.16);
-  border-radius: 20rpx;
-  color: #b45309;
-  font-size: 24rpx;
-  line-height: 1.6;
-}
-
-.image-list {
+.upload-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 16rpx;
 }
 
-.image-wrapper {
-  width: 200rpx;
-  height: 200rpx;
+.upload-tile {
   position: relative;
+  width: calc((100% - 32rpx) / 3);
+  min-width: 0;
+  height: 210rpx;
   border-radius: 24rpx;
   overflow: hidden;
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  background: #e7f1ec;
 }
 
-.image {
+.upload-preview {
   width: 100%;
   height: 100%;
 }
 
-.image-delete {
-  position: absolute;
-  top: 10rpx;
-  right: 10rpx;
-  width: 48rpx;
-  height: 48rpx;
-  background: rgba(15, 23, 42, 0.72);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 36rpx;
-  line-height: 1;
-}
-
-.image-add {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 24rpx;
-  border: 2rpx dashed rgba(79, 124, 255, 0.22);
-  background: rgba(79, 124, 255, 0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.image-add:active {
-  border-color: rgba(79, 124, 255, 0.44);
-  background: rgba(79, 124, 255, 0.08);
-}
-
-.add-content,
-.uploading-content {
-  text-align: center;
+.add-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  border: 2rpx dashed #8aa39a;
+  color: #006a60;
 }
 
-.add-icon {
-  font-size: 56rpx;
-  margin-bottom: 8rpx;
+.add-symbol {
+  font-size: 54rpx;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.add-text,
-.uploading-text {
+.add-text {
+  margin-top: 10rpx;
   font-size: 24rpx;
-  color: #94a3b8;
+  font-weight: 700;
 }
 
-.uploading-spinner {
-  width: 48rpx;
-  height: 48rpx;
-  margin-bottom: 12rpx;
-  border: 4rpx solid rgba(148, 163, 184, 0.18);
-  border-top-color: #4f7cff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.remove-image {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46rpx;
+  height: 46rpx;
+  border-radius: 999rpx;
+  background: rgba(20, 30, 28, 0.72);
+  color: #ffffff;
+  font-size: 34rpx;
+  font-weight: 400;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.ai-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18rpx;
 }
 
-.submit-section {
-  padding: 0;
-  margin-top: 14rpx;
+.ai-btn {
+  min-height: 64rpx;
+  padding: 0 22rpx;
+  font-size: 25rpx;
+}
+
+.form-split {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .submit-btn {
   width: 100%;
-  padding: 30rpx;
-  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
-  color: #ffffff;
-  border-radius: 26rpx;
-  text-align: center;
-  font-size: 30rpx;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 18rpx 40rpx rgba(79, 124, 255, 0.22);
+  margin-top: 34rpx;
 }
 
-.submit-btn:active {
-  transform: translateY(2rpx);
-}
-
-.submit-btn:disabled {
-  background: #cbd5e1;
-  opacity: 0.9;
-  box-shadow: none;
-}
-
-.bottom-safe {
-  height: 40rpx;
-}
-
-.dialog-mask {
+.ai-dialog-mask {
   position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.34);
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 32rpx;
-  z-index: 1200;
-  backdrop-filter: blur(12rpx);
+  padding: 28rpx;
+  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
+  background: rgba(19, 29, 26, 0.38);
 }
 
-.login-dialog {
+.ai-dialog {
   width: 100%;
-  max-width: 680rpx;
-  padding: 44rpx 34rpx 34rpx;
-  background: rgba(255, 255, 255, 0.96);
-  border: 1rpx solid rgba(148, 163, 184, 0.18);
+  max-width: 720rpx;
+  padding: 30rpx;
   border-radius: 32rpx;
-  box-shadow: 0 24rpx 70rpx rgba(15, 23, 42, 0.18);
-  text-align: center;
 }
 
-.dialog-icon {
-  width: 104rpx;
-  height: 104rpx;
-  margin: 0 auto 22rpx;
-  border-radius: 30rpx;
-  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(124, 58, 237, 0.12) 100%);
+.ai-dialog-head {
+  display: flex;
+  align-items: flex-start;
+}
+
+.ai-dialog-title {
+  display: block;
+  color: #171d1b;
+  font-size: 34rpx;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.ai-dialog-subtitle {
+  display: block;
+  margin-top: 8rpx;
+  color: #60706a;
+  font-size: 24rpx;
+}
+
+.ai-choice-row {
+  display: flex;
+  gap: 14rpx;
+  margin-top: 24rpx;
+}
+
+.ai-choice {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 54rpx;
-}
-
-.dialog-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 12rpx;
-}
-
-.dialog-text {
+  min-height: 76rpx;
+  border-radius: 999rpx;
+  background: #e7f1ec;
+  color: #3f4d48;
   font-size: 27rpx;
-  line-height: 1.7;
-  color: #64748b;
+  font-weight: 750;
 }
 
-.dialog-actions {
-  display: flex;
-  gap: 18rpx;
-  margin-top: 30rpx;
-}
-
-.dialog-btn {
-  flex: 1;
-  padding: 22rpx 20rpx;
-  border-radius: 22rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  text-align: center;
-}
-
-.dialog-btn-secondary {
-  background: rgba(248, 250, 252, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  color: #64748b;
-}
-
-.dialog-btn-primary {
-  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
+.ai-choice.active {
+  background: #006a60;
   color: #ffffff;
-  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.18);
+}
+
+.ai-choice.disabled {
+  color: #8b9691;
+  background: #dfe6e1;
+}
+
+.ai-draft {
+  min-height: 210rpx;
+  margin-top: 22rpx;
+}
+
+.ai-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+  margin-top: 20rpx;
+}
+
+.ai-action {
+  min-width: 150rpx;
+}
+
+.select-dialog-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 28rpx;
+  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
+  background: rgba(19, 29, 26, 0.38);
+}
+
+.select-dialog {
+  width: 100%;
+  max-width: 720rpx;
+  padding: 30rpx;
+  border-radius: 32rpx;
+}
+
+.select-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
+}
+
+.select-dialog-title {
+  color: #171d1b;
+  font-size: 34rpx;
+  font-weight: 780;
+  line-height: 1.25;
+}
+
+.select-dialog-value {
+  flex: 0 0 auto;
+  max-width: 360rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #cce8e1;
+  color: #00201c;
+  font-size: 24rpx;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-wheel {
+  width: 100%;
+  height: 360rpx;
+  margin-top: 24rpx;
+  border-radius: 26rpx;
+  background: #f2f8f3;
+  overflow: hidden;
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 72rpx;
+  color: #3f4d48;
+  font-size: 29rpx;
+  font-weight: 700;
+}
+
+.select-wheel-indicator {
+  height: 72rpx;
+  border-top: 1rpx solid rgba(0, 106, 96, 0.18);
+  border-bottom: 1rpx solid rgba(0, 106, 96, 0.18);
+  background: rgba(204, 232, 225, 0.42);
+}
+
+.select-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12rpx;
+  margin-top: 22rpx;
+}
+
+.select-action {
+  min-width: 150rpx;
 }
 
 @media screen and (min-width: 768px) {
-  .page {
-    padding: 24px 24px 180px;
+  .form-split {
+    flex-direction: row;
+    gap: 20rpx;
   }
 
-  .header {
-    padding: 34px 32px;
+  .split-item {
+    flex: 1;
   }
 
-  .section {
-    padding: 28px;
+  .ai-dialog-mask {
+    align-items: center;
   }
 
-  .header-title {
-    font-size: 32px;
-  }
-
-  .header-subtitle,
-  .type-text,
-  .date-label,
-  .date-value,
-  .submit-btn,
-  .dialog-btn {
-    font-size: 16px;
-  }
-
-  .input {
-    min-height: 48px;
-    padding: 12px 14px;
-    font-size: 15px;
-    border-radius: 14px;
-  }
-
-  .textarea {
-    min-height: 132px;
-    padding: 14px;
-    font-size: 15px;
-    border-radius: 14px;
-  }
-
-  .section-label,
-  .mode-chip,
-  .add-text,
-  .uploading-text,
-  .ai-tip {
-    font-size: 13px;
-  }
-
-  .type-option {
-    min-height: 148px;
-    justify-content: center;
-  }
-
-  .image-wrapper,
-  .image-add {
-    width: calc((100% - 32px) / 3);
-    max-width: 180px;
-    height: 180px;
-  }
-
-  .login-dialog {
-    max-width: 420px;
-    padding: 28px;
-    border-radius: 24px;
-  }
-
-  .dialog-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 20px;
-    font-size: 32px;
-    margin-bottom: 16px;
-  }
-
-  .dialog-title {
-    font-size: 24px;
-  }
-
-  .dialog-text {
-    font-size: 14px;
-  }
-}
-
-@media screen and (min-width: 1024px) {
-  .page-shell {
-    max-width: 1080px;
-  }
-
-  .type-selector {
-    gap: 20px;
-  }
-
-  .section-label-row {
-    flex-wrap: wrap;
-    align-items: flex-start;
+  .select-dialog-mask {
+    align-items: center;
   }
 }
 </style>

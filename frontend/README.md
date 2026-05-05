@@ -1,195 +1,117 @@
-# 校园失物招领前端（uni-app）
+# 校园失物招领前端
 
-这是本项目的前端部分，基于 uni-app 开发，主要面向校园失物招领场景。
+这是校园失物招领系统的 uni-app 前端，使用 Vue 3 和 Material Design 3 风格实现，目标运行端包括 H5、App 和常见小程序端。
 
-支持的核心功能包括：
-
-- 用户注册、登录、退出登录
-- 失物 / 招领信息发布
-- 信息列表浏览、搜索与详情查看
-- 评论互动
-- 我的发布管理
-- 管理员后台管理
-- 图片上传
-- 与后端 API 联调
-
----
-
-## 项目结构
+## 目录结构
 
 ```text
 frontend/
-├─ common/                 # 公共方法与配置
-│  ├─ config.example.js    # 前端配置示例（提交到仓库）
-│  ├─ config.js            # 前端运行时配置（本地生成，不提交）
-│  └─ request.js           # 请求封装
-├─ custom-tab-bar/         # 自定义 tabBar
-├─ pages/                  # 页面目录
-├─ static/                 # 静态资源
-├─ tools/                  # 前端辅助脚本
-├─ App.vue
-├─ main.js
-├─ manifest.json
-├─ pages.json
-├─ uni.scss
-└─ config.yaml             # 维护者查看/同步参考配置
+  App.vue                    # 全局样式、Material 3 基础组件样式
+  main.js                    # uni-app 入口
+  pages.json                 # 页面路由、导航栏、tabBar 配置
+  manifest.json              # 应用与各平台配置
+  common/
+    config.example.js        # 前端配置示例
+    config.js                # 本地实际配置，已被 git 忽略
+    request.js               # 请求、上传、登录态封装
+    utils.js                 # 日期、图片路径、标签等工具函数
+  custom-tab-bar/index.vue   # 自定义底部导航
+  pages/
+    index/index.vue          # 首页列表、搜索、筛选
+    publish/publish.vue      # 发布信息、图片上传、AI 识别
+    detail/detail.vue        # 详情、联系方式、评论、匹配结果
+    my/my.vue                # 我的、通知摘要、我的发布
+    notifications/notifications.vue # 通知列表
+    login/login.vue          # 登录
+    register/register.vue    # 注册
+    admin/items.vue          # 管理员信息管理
 ```
 
----
+## 运行方式
 
-## 运行环境
+1. 用 HBuilderX 打开 `frontend/` 目录。
+2. 确认 `frontend/common/config.js` 存在。
+3. 修改 `config.js` 里的 `baseUrl`，让它指向后端服务。
+4. 在 HBuilderX 中运行到 H5、App 或目标小程序。
 
-建议使用以下方式开发和运行：
-
-- HBuilderX（推荐）
-- uni-app 对应开发工具链
-- 已启动的后端服务
-
----
-
-## 本地运行
-
-### 方式一：HBuilderX
-
-1. 使用 HBuilderX 打开 `frontend/` 目录。
-2. 运行到浏览器、真机或小程序模拟器。
-3. 确认后端服务已经启动。
-4. 确认前端接口地址与后端实际地址一致。
-
-### 方式二：命令行
-
-如果你已经安装并配置好 uni-app CLI，也可以按你当前模板支持的方式运行。
-
----
-
-## 前端配置说明
-
-前端运行时实际读取的是：
-
-- `common/config.js`
-
-首次使用前，请先从示例文件复制：
+项目根目录提供了同步脚本，可同时更新前端服务地址和后端 `.env`：
 
 ```bash
-cp frontend/common/config.example.js frontend/common/config.js
+node set-server-ip.js 127.0.0.1 3000
 ```
 
-当前默认配置关键项如下：
-
-- `baseUrl`: `http://localhost:3000`
-- `prefix`: `/api`
-- `uploadPath`: `/upload`
-- `maxImages`: `3`
-
-接口基础地址会拼接为：
-
-```text
-http://localhost:3000/api
-```
-
-### 关于 `config.yaml`
-
-项目中保留了 `config.yaml`，方便维护者查看和统一管理配置含义。
-
-但需要注意：
-
-> uni-app 前端运行时不会直接读取 `config.yaml`，实际生效的是 `common/config.js`。
-
-所以如果你修改了接口地址，请优先检查：
-
-- `frontend/common/config.js`
-
----
-
-## 一键切换服务器地址
-
-如果你部署到了服务器，可以使用项目根目录脚本快速切换地址：
-
-- 脚本：`set-server-ip.js`
-
-在项目根目录执行：
+也可以传入局域网 IP，方便手机或真机调试：
 
 ```bash
-node set-server-ip.js <host>
+node set-server-ip.js 192.168.1.10 3000
 ```
 
-也可以指定端口：
+## 配置说明
 
-```bash
-node set-server-ip.js <host> 8080
+`frontend/common/config.js` 示例：
+
+```js
+export const APP_CONFIG = {
+  api: {
+    baseUrl: 'http://localhost:3000',
+    prefix: '/api',
+    uploadPath: '/upload'
+  },
+  publish: {
+    maxImages: 3
+  }
+};
 ```
 
-也支持直接传完整 URL：
+常用导出：
 
-```bash
-node set-server-ip.js https://api.example.com
-```
+- `API_BASE_URL`：普通接口地址，例如 `http://localhost:3000/api`
+- `API_UPLOAD_URL`：图片上传地址，例如 `http://localhost:3000/api/upload`
+- `STATIC_BASE_URL`：图片静态资源基地址
+- `MAX_UPLOAD_IMAGES`：发布页最多上传图片数量
 
-这个脚本会自动处理：
+## 已接入功能
 
-- `frontend/common/config.js` 中的前端接口地址（如不存在会从 `config.example.js` 自动创建）
-- `backend/.env` 中的后端相关地址配置
+- 首页信息流、关键词搜索、类型筛选、分类筛选
+- 登录、注册、登录态本地保存
+- 发布寻物或招领信息
+- 图片上传，最多 3 张
+- AI 图片识别，支持简略和详细两种描述
+- 详情页查看联系方式、评论和可能匹配项
+- 我的页面查看通知摘要和我的发布
+- 通知列表、标记已读、全部已读
+- 管理员信息管理、状态更新和删除
 
+## 接口约定
 
-修改后请重新运行前端，并按需重启后端。
+前端请求统一走 `common/request.js`：
 
----
+- 普通请求使用 `request(options)`
+- 图片上传使用 `uploadImage(filePath)`
+- JWT 存储在 `uni` storage 的 `token`
+- 登录用户信息存储在 `user`
+- 接口返回 `401` 时会清理本地登录态
 
-## 主要接口约定
+后端接口前缀为 `/api`，主要接口包括：
 
-前端目前会用到的主要接口包括：
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `GET /api/items`
+- `POST /api/items`
+- `POST /api/upload`
+- `POST /api/ai/recognize`
+- `GET /api/notifications`
 
-- `POST /auth/register` 用户注册
-- `POST /auth/login` 用户登录
-- `GET /auth/me` 获取当前用户信息
-- `GET /items` 获取信息列表
-- `GET /items/:id` 获取信息详情
-- `POST /items` 发布信息
-- `PUT /items/:id` 修改信息
-- `DELETE /items/:id` 删除信息
-- `GET /items/my` 获取我的发布
-- `GET /items/:id/comments` 获取评论列表
-- `POST /items/:id/comments` 发表评论
-- `DELETE /items/:id/comments/:commentId` 删除评论
-- `POST /upload` 上传图片
-- `GET /admin/items` 管理员获取全部信息
-- `PUT /admin/items/:id/status` 管理员修改状态
-- `DELETE /admin/items/:id` 管理员删除信息
-- `GET /notifications` 获取通知列表
+## H5 调试提示
 
----
+- H5 白屏时，先检查 `index.html` 是否保留了 `<script type="module" src="/main.js"></script>`。
+- H5 请求失败时，检查 `config.js` 的 `baseUrl` 和后端 CORS 配置。
+- 图片上传提示登录过期时，重新登录后再上传。
+- 真机访问本机后端时，不要使用 `localhost`，请使用电脑局域网 IP。
 
-## 关键实现说明
+## 注意事项
 
-- 请求封装：`common/request.js`
-- Token 本地缓存：`uni.setStorageSync('token', ...)`
-- 用户信息缓存：`uni.setStorageSync('user', ...)`
-- 静态资源访问基址来自 `common/config.js`
-- 上传数量限制由配置项控制
-
----
-
-
-## 常见问题
-
-### 1. 页面能打开，但接口请求失败
-
-请检查：
-
-- 后端是否已启动
-- `common/config.js` 中的 `baseUrl` 是否正确
-- 后端端口是否为 `3000`
-- 后端 CORS 是否允许当前前端地址访问
-
-### 2. 上传图片失败
-
-请检查：
-
-- 后端上传接口是否正常
-- 前端上传地址是否为 `/api/upload`
-- 是否已登录
-
-### 3. 修改了 `config.yaml` 但前端没生效
-
-因为运行时实际读取的是 `common/config.js`，不是 `config.yaml`。
-
+- `frontend/common/config.js` 是本地配置文件，不提交到 git。
+- `frontend/unpackage/` 是 HBuilderX 编译产物，不提交到 git。
+- 前端不依赖额外 UI 框架，主要使用 uni-app 原生组件和本地样式。
+- AI 识别需要后端配置对应的模型 API Key。

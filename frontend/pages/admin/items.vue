@@ -1,371 +1,320 @@
 <template>
-  <view class="page">
-    <!-- 顶部标题 -->
-    <view class="header">
-      <text class="header-icon">⚙️</text>
-      <text class="header-title">管理后台</text>
-    </view>
-
-    <!-- 统计卡片 -->
-    <view class="stats-section">
-      <view class="stat-card">
-        <text class="stat-value">{{ list.length }}</text>
-        <text class="stat-label">当前显示</text>
-      </view>
-      <view class="stat-card">
-        <text class="stat-value">{{ list.filter(i => i.status === 'open').length }}</text>
-        <text class="stat-label">进行中</text>
-      </view>
-      <view class="stat-card">
-        <text class="stat-value">{{ list.filter(i => i.status === 'resolved').length }}</text>
-        <text class="stat-label">已解决</text>
-      </view>
-    </view>
-
-    <!-- 筛选区 -->
-    <view class="filter-section">
-      <picker :range="statusOptions" :value="statusIndex" @change="onStatusChange">
-        <view class="filter-btn">
-          <text>{{ statusOptions[statusIndex].label }}</text>
+  <view class="m3-page">
+    <view class="m3-shell">
+      <view class="admin-hero m3-card">
+        <view>
+          <text class="m3-title">信息管理</text>
+          <text class="m3-subtitle">管理员可更新状态或删除无效信息。</text>
         </view>
-      </picker>
-      <picker :range="typeOptions" :value="typeIndex" @change="onTypeChange">
-        <view class="filter-btn">
-          <text>{{ typeOptions[typeIndex].label }}</text>
-        </view>
-      </picker>
-    </view>
+        <button class="m3-btn secondary hero-btn" @tap="loadItems">刷新</button>
+      </view>
 
-    <!-- 列表区 -->
-    <scroll-view scroll-y class="list-scroll">
-      <view class="list-section">
-        <view v-for="item in list" :key="item._id" class="item-card">
-          <view class="item-top">
-            <text class="item-emoji">{{ item.type === 'lost' ? '🔍' : '🎁' }}</text>
-            <text class="item-title">{{ item.title }}</text>
-            <view class="status-badge" :class="item.status === 'resolved' ? 'resolved' : 'open'">
-              {{ item.status === 'resolved' ? '✓' : '⏳' }}
+      <view v-if="authorized === false" class="m3-card m3-empty">
+        <text class="m3-empty-title">无管理权限</text>
+        <button class="m3-btn secondary empty-action" @tap="goHome">返回首页</button>
+      </view>
+
+      <block v-else>
+        <view class="filter-card m3-card">
+          <view class="m3-segment">
+            <view
+              v-for="option in typeFilters"
+              :key="option.value"
+              class="m3-segment-item"
+              :class="{ active: filters.type === option.value }"
+              @tap="setFilter('type', option.value)"
+            >
+              <text>{{ option.label }}</text>
             </view>
           </view>
-          <view class="item-info">
-            <text class="info-text">👤 {{ item.owner?.username || '未知' }}</text>
-            <text class="info-text">🕐 {{ formatTime(item.createdAt) }}</text>
-          </view>
-          <view class="item-actions">
-            <button class="action-btn toggle-btn" @click="toggleStatus(item)">
-              {{ item.status === 'resolved' ? '标记进行中' : '标记已解决' }}
-            </button>
-            <button class="action-btn delete-btn" @click="removeItem(item)">
-              删除
-            </button>
+          <view class="m3-segment status-segment">
+            <view
+              v-for="option in statusFilters"
+              :key="option.value"
+              class="m3-segment-item"
+              :class="{ active: filters.status === option.value }"
+              @tap="setFilter('status', option.value)"
+            >
+              <text>{{ option.label }}</text>
+            </view>
           </view>
         </view>
 
-        <view v-if="!list.length" class="empty-state">
-          <text class="empty-icon">📋</text>
-          <text class="empty-text">暂无数据</text>
-          <text class="empty-hint">调整筛选条件试试</text>
+        <view v-if="loading" class="m3-card soft-empty">
+          <text>正在加载</text>
         </view>
-      </view>
-    </scroll-view>
+        <view v-else-if="items.length === 0" class="m3-card m3-empty">
+          <text class="m3-empty-title">暂无信息</text>
+        </view>
+        <view v-else class="admin-list">
+          <view v-for="item in items" :key="item._id" class="m3-card admin-item">
+            <view class="admin-item-head" @tap="goDetail(item._id)">
+              <view class="admin-main">
+                <text class="admin-title">{{ item.title }}</text>
+                <text class="admin-meta">
+                  {{ itemTypeLabel(item.type) }} · {{ item.category || '未分类' }} · {{ ownerName(item) }}
+                </text>
+                <text class="admin-meta">{{ formatDateTime(item.createdAt) }}</text>
+              </view>
+              <text class="m3-chip" :class="{ warn: item.status === 'resolved' }">
+                {{ statusLabel(item.status) }}
+              </text>
+            </view>
+            <view class="admin-actions">
+              <button
+                class="m3-btn secondary admin-action"
+                @tap="updateStatus(item, item.status === 'open' ? 'resolved' : 'open')"
+              >
+                {{ item.status === 'open' ? '完结' : '开启' }}
+              </button>
+              <button class="m3-btn secondary admin-action" @tap="goDetail(item._id)">详情</button>
+              <button class="m3-btn danger admin-action" @tap="deleteItem(item)">删除</button>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
   </view>
 </template>
 
 <script>
-import { request } from '@/common/request.js';
+import { request, isLoggedIn, getStoredUser, saveSession, getToken } from '../../common/request.js';
+import { formatDateTime, itemTypeLabel, statusLabel, toastError, userIdOf } from '../../common/utils.js';
+
+function confirmAction(title, content) {
+  return new Promise((resolve) => {
+    uni.showModal({
+      title,
+      content,
+      success(res) {
+        resolve(Boolean(res.confirm));
+      },
+      fail() {
+        resolve(false);
+      }
+    });
+  });
+}
 
 export default {
   data() {
     return {
-      list: [],
-      statusOptions: [
-        { value: '', label: '全部' },
-        { value: 'open', label: '进行中' },
-        { value: 'resolved', label: '已解决' }
+      authorized: null,
+      loading: false,
+      items: [],
+      user: null,
+      filters: {
+        type: '',
+        status: ''
+      },
+      typeFilters: [
+        { label: '全部', value: '' },
+        { label: '寻物', value: 'lost' },
+        { label: '招领', value: 'found' }
       ],
-      statusIndex: 0,
-      typeOptions: [
-        { value: '', label: '全部' },
-        { value: 'lost', label: '寻物启事' },
-        { value: 'found', label: '失物招领' }
-      ],
-      typeIndex: 0,
-      loading: false
+      statusFilters: [
+        { label: '全部', value: '' },
+        { label: '进行中', value: 'open' },
+        { label: '已完结', value: 'resolved' }
+      ]
     };
   },
   onShow() {
-    this.fetchItems();
+    this.user = getStoredUser();
+    this.ensureAdmin();
   },
   methods: {
-    async fetchItems() {
+    async ensureAdmin() {
+      if (!isLoggedIn()) {
+        this.authorized = false;
+        uni.navigateTo({
+          url: '/pages/login/login?redirect=%2Fpages%2Fadmin%2Fitems'
+        });
+        return;
+      }
+
+      try {
+        const res = await request({
+          url: '/auth/me'
+        });
+        const user = res.data || null;
+        if (user) {
+          user.id = userIdOf(user);
+          this.user = user;
+          saveSession(getToken(), user);
+        }
+        this.authorized = user && user.role === 'admin';
+        if (this.authorized) {
+          this.loadItems();
+        }
+      } catch (error) {
+        this.authorized = false;
+        toastError(error, '权限校验失败');
+      }
+    },
+    setFilter(key, value) {
+      if (this.filters[key] === value) return;
+      this.filters[key] = value;
+      this.loadItems();
+    },
+    async loadItems() {
+      if (this.authorized === false) {
+        return;
+      }
+
       this.loading = true;
       try {
-        const params = {};
-        const status = this.statusOptions[this.statusIndex].value;
-        const type = this.typeOptions[this.typeIndex].value;
-        if (status) params.status = status;
-        if (type) params.type = type;
+        const data = {};
+        if (this.filters.type) data.type = this.filters.type;
+        if (this.filters.status) data.status = this.filters.status;
+
         const res = await request({
           url: '/admin/items',
-          data: params
+          data
         });
-        this.list = res.data || [];
-      } catch (e) {
-        uni.showToast({ title: '加载失败', icon: 'none' });
+        this.items = Array.isArray(res.data) ? res.data : [];
+      } catch (error) {
+        const statusCode = Number(error.statusCode || 0);
+        if (statusCode === 401 || statusCode === 403) {
+          this.authorized = false;
+        }
+        toastError(error, '列表加载失败');
       } finally {
         this.loading = false;
       }
     },
-    onStatusChange(e) {
-      this.statusIndex = Number(e.detail.value);
-      this.fetchItems();
-    },
-    onTypeChange(e) {
-      this.typeIndex = Number(e.detail.value);
-      this.fetchItems();
-    },
-    formatTime(t) {
-      if (!t) return '';
-      return t.slice(0, 10);
-    },
-    async toggleStatus(item) {
-      const target = item.status === 'resolved' ? 'open' : 'resolved';
+    async updateStatus(item, status) {
       try {
-        await request({
+        const res = await request({
           url: `/admin/items/${item._id}/status`,
           method: 'PUT',
-          data: { status: target }
+          data: {
+            status
+          }
         });
-        item.status = target;
-        uni.showToast({ title: '状态已更新', icon: 'success' });
-      } catch (e) {
-        uni.showToast({ title: '更新失败', icon: 'none' });
+        Object.assign(item, res.data || { status });
+      } catch (error) {
+        toastError(error, '状态更新失败');
       }
     },
-    async removeItem(item) {
-      uni.showModal({
-        title: '确认删除',
-        content: '确定要删除该条信息吗？此操作不可恢复。',
-        success: async (res) => {
-          if (!res.confirm) return;
-          try {
-            await request({
-              url: `/admin/items/${item._id}`,
-              method: 'DELETE'
-            });
-            this.list = this.list.filter((i) => i._id !== item._id);
-            uni.showToast({ title: '删除成功', icon: 'success' });
-          } catch (e) {}
-        }
+    async deleteItem(item) {
+      const ok = await confirmAction('删除信息', '管理员删除后不可恢复，确认继续？');
+      if (!ok) return;
+
+      try {
+        await request({
+          url: `/admin/items/${item._id}`,
+          method: 'DELETE'
+        });
+        this.items = this.items.filter((entry) => entry._id !== item._id);
+      } catch (error) {
+        toastError(error, '删除失败');
+      }
+    },
+    ownerName(item) {
+      if (item.owner && item.owner.username) {
+        return item.owner.username;
+      }
+      return '匿名';
+    },
+    goDetail(id) {
+      uni.navigateTo({
+        url: `/pages/detail/detail?id=${id}`
       });
-    }
+    },
+    goHome() {
+      uni.switchTab({
+        url: '/pages/index/index'
+      });
+    },
+    formatDateTime,
+    itemTypeLabel,
+    statusLabel
   }
 };
 </script>
 
-<style scoped>
-.page {
-  min-height: 100vh;
-  padding-bottom: 48rpx;
-}
-
-.header {
-  margin: 28rpx 28rpx 24rpx;
-  padding: 52rpx 40rpx;
-  text-align: center;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.96) 60%, rgba(79, 124, 255, 0.08) 100%);
-  border-radius: 32rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 18rpx 54rpx rgba(15, 23, 42, 0.08);
-}
-
-.header-icon {
-  font-size: 80rpx;
-  display: block;
-  margin-bottom: 16rpx;
-}
-
-.header-title {
-  font-size: 50rpx;
-  font-weight: 700;
-  color: #1f2937;
-  letter-spacing: -1rpx;
-}
-
-.stats-section {
-  display: flex;
-  gap: 14rpx;
-  padding: 0 28rpx 24rpx;
-}
-
-.stat-card {
-  flex: 1;
-  padding: 26rpx 16rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 24rpx;
-  text-align: center;
-  box-shadow: 0 12rpx 34rpx rgba(15, 23, 42, 0.05);
-}
-
-.stat-value {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #1f2937;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.stat-label {
-  font-size: 24rpx;
-  color: #94a3b8;
-  display: block;
-}
-
-.filter-section {
-  display: flex;
-  gap: 14rpx;
-  padding: 0 28rpx 24rpx;
-}
-
-.filter-btn {
-  flex: 1;
-  padding: 22rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 22rpx;
-  text-align: center;
-  font-size: 28rpx;
-  color: #1f2937;
-  box-shadow: 0 10rpx 24rpx rgba(15, 23, 42, 0.04);
-}
-
-.list-scroll {
-  height: calc(100vh - 500rpx);
-}
-
-.list-section {
-  padding: 0 28rpx;
-}
-
-.item-card {
-  padding: 24rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 26rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.05);
-}
-
-.item-top {
+<style>
+.admin-hero {
   display: flex;
   align-items: center;
-  margin-bottom: 16rpx;
+  justify-content: space-between;
+  gap: 18rpx;
+  padding: 34rpx;
 }
 
-.item-emoji {
-  font-size: 36rpx;
-  margin-right: 12rpx;
+.hero-btn {
+  flex: 0 0 auto;
 }
 
-.item-title {
-  flex: 1;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-right: 12rpx;
+.filter-card {
+  margin-top: 24rpx;
+  padding: 20rpx;
 }
 
-.status-badge {
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-  flex-shrink: 0;
+.status-segment {
+  margin-top: 16rpx;
 }
 
-.status-badge.open {
-  background: rgba(79, 124, 255, 0.1);
-  color: #3d68eb;
-}
-
-.status-badge.resolved {
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
-}
-
-.item-info {
-  display: flex;
-  gap: 24rpx;
-  margin-bottom: 16rpx;
-}
-
-.info-text {
-  font-size: 24rpx;
-  color: #94a3b8;
-}
-
-.item-actions {
-  display: flex;
-  gap: 12rpx;
-}
-
-.action-btn {
-  flex: 1;
-  padding: 18rpx;
-  border-radius: 20rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-  border: none;
-}
-
-.toggle-btn {
-  background: rgba(245, 158, 11, 0.1);
-  color: #b45309;
-  border: 1rpx solid rgba(245, 158, 11, 0.16);
-}
-
-.toggle-btn:active {
-  background: rgba(245, 158, 11, 0.16);
-}
-
-.delete-btn {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border: 1rpx solid rgba(239, 68, 68, 0.16);
-}
-
-.delete-btn:active {
-  background: rgba(239, 68, 68, 0.16);
-}
-
-.empty-state {
+.admin-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 100rpx 40rpx;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1rpx solid rgba(148, 163, 184, 0.14);
-  border-radius: 28rpx;
-  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
+  gap: 18rpx;
+  margin-top: 24rpx;
 }
 
-.empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
-  opacity: 0.3;
+.admin-item {
+  padding: 26rpx;
 }
 
-.empty-text {
-  font-size: 32rpx;
-  color: #1f2937;
-  margin-bottom: 12rpx;
-  font-weight: 600;
+.admin-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
 }
 
-.empty-hint {
-  font-size: 26rpx;
-  color: #94a3b8;
+.admin-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-title {
+  display: block;
+  color: #171d1b;
+  font-size: 30rpx;
+  font-weight: 760;
+  line-height: 1.3;
+}
+
+.admin-meta {
+  display: block;
+  margin-top: 8rpx;
+  color: #60706a;
+  font-size: 23rpx;
+  line-height: 1.45;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 22rpx;
+}
+
+.admin-action {
+  flex: 1;
+  min-height: 66rpx;
+  font-size: 24rpx;
+}
+
+.soft-empty {
+  margin-top: 24rpx;
+  padding: 48rpx 0;
+  color: #60706a;
+  text-align: center;
+}
+
+.empty-action {
+  margin-top: 24rpx;
 }
 </style>
-

@@ -4,31 +4,40 @@
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "校园失物招领",
-        "navigationBarBackgroundColor": "#F6F8FC",
-        "navigationBarTextStyle": "black"
+        "navigationBarBackgroundColor": "#F8FAF6",
+        "navigationBarTextStyle": "black",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/detail/detail",
       "style": {
         "navigationBarTitleText": "详情",
-        "navigationBarBackgroundColor": "#F6F8FC",
+        "navigationBarBackgroundColor": "#F8FAF6",
         "navigationBarTextStyle": "black"
       }
     },
     {
       "path": "pages/publish/publish",
       "style": {
-        "navigationBarTitleText": "发布信息",
-        "navigationBarBackgroundColor": "#F6F8FC",
+        "navigationBarTitleText": "发布",
+        "navigationBarBackgroundColor": "#F8FAF6",
         "navigationBarTextStyle": "black"
       }
     },
     {
       "path": "pages/my/my",
       "style": {
-        "navigationBarTitleText": "我的发布",
-        "navigationBarBackgroundColor": "#F6F8FC",
+        "navigationBarTitleText": "我的",
+        "navigationBarBackgroundColor": "#F8FAF6",
+        "navigationBarTextStyle": "black"
+      }
+    },
+    {
+      "path": "pages/notifications/notifications",
+      "style": {
+        "navigationBarTitleText": "通知",
+        "navigationBarBackgroundColor": "#F8FAF6",
         "navigationBarTextStyle": "black"
       }
     },
@@ -36,7 +45,7 @@
       "path": "pages/login/login",
       "style": {
         "navigationBarTitleText": "登录",
-        "navigationBarBackgroundColor": "#F6F8FC",
+        "navigationBarBackgroundColor": "#F8FAF6",
         "navigationBarTextStyle": "black"
       }
     },
@@ -44,43 +53,49 @@
       "path": "pages/register/register",
       "style": {
         "navigationBarTitleText": "注册",
-        "navigationBarBackgroundColor": "#F6F8FC",
+        "navigationBarBackgroundColor": "#F8FAF6",
         "navigationBarTextStyle": "black"
       }
     },
     {
       "path": "pages/admin/items",
       "style": {
-        "navigationBarTitleText": "管理后台 - 信息管理",
-        "navigationBarBackgroundColor": "#F6F8FC",
+        "navigationBarTitleText": "信息管理",
+        "navigationBarBackgroundColor": "#F8FAF6",
         "navigationBarTextStyle": "black"
       }
     }
   ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "校园失物招领",
+    "navigationBarBackgroundColor": "#F8FAF6",
+    "backgroundColor": "#F8FAF6"
+  },
   "tabBar": {
     "custom": true,
-    "color": "#94A3B8",
-    "selectedColor": "#4F7CFF",
-    "backgroundColor": "#F6F8FC",
+    "color": "#60706A",
+    "selectedColor": "#006A60",
+    "backgroundColor": "#F8FAF6",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "首页",
-        "iconPath": "static/index.png",
-        "selectedIconPath": "static/index.png"
+        "iconPath": "static/tab-home.svg",
+        "selectedIconPath": "static/tab-home-active.svg"
       },
       {
         "pagePath": "pages/publish/publish",
         "text": "发布",
-        "iconPath": "static/publish.png",
-        "selectedIconPath": "static/publish.png"
+        "iconPath": "static/tab-add.svg",
+        "selectedIconPath": "static/tab-add-active.svg"
       },
       {
         "pagePath": "pages/my/my",
         "text": "我的",
-        "iconPath": "static/my.png",
-        "selectedIconPath": "static/my.png"
+        "iconPath": "static/tab-user.svg",
+        "selectedIconPath": "static/tab-user-active.svg"
       }
     ]
   }

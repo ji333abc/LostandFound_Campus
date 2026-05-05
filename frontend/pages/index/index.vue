@@ -1,548 +1,565 @@
 <template>
-  <view class="page">
-    <view class="page-shell">
-      <!-- 顶部标题区 -->
-      <view class="header">
-        <view class="header-icon">🔍</view>
-        <view class="header-title">{{ appName }}</view>
-        <view class="header-subtitle">{{ homeSubtitle }}</view>
-      </view>
-
-      <!-- 搜索栏 -->
-      <view class="search-section">
-      <view class="search-box">
-        <text class="search-icon">🔎</text>
-        <input
-          class="search-input"
-          v-model="keyword"
-          placeholder="搜索物品名称或描述..."
-          confirm-type="search"
-          @confirm="fetchList"
-        />
-      </view>
-    </view>
-
-    <!-- 筛选标签 -->
-    <view class="filter-section">
-      <view 
-        :class="['filter-tag', type === 'lost' ? 'active' : '']" 
-        @click="changeType('lost')"
-      >
-        寻物启事
-      </view>
-      <view 
-        :class="['filter-tag', type === 'found' ? 'active' : '']" 
-        @click="changeType('found')"
-      >
-        失物招领
-      </view>
-      <view 
-        :class="['filter-tag', statusIndex === 0 ? 'active' : '']" 
-        @click="changeStatus(0)"
-      >
-        全部
-      </view>
-      <view 
-        :class="['filter-tag', statusIndex === 1 ? 'active' : '']" 
-        @click="changeStatus(1)"
-      >
-        进行中
-      </view>
-      <view 
-        :class="['filter-tag', statusIndex === 2 ? 'active' : '']" 
-        @click="changeStatus(2)"
-      >
-        已解决
-      </view>
-    </view>
-
-      <!-- 列表区 -->
-      <scroll-view scroll-y class="list-container">
-      <view v-if="loading" class="loading-state">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
-      </view>
-
-      <view v-else-if="!list.length" class="empty-state">
-        <text class="empty-icon">📭</text>
-        <text class="empty-text">暂无相关信息</text>
-        <text class="empty-hint">试试切换筛选条件</text>
-      </view>
-
-      <view v-else class="list">
-        <view 
-          v-for="item in list" 
-          :key="item._id" 
-          class="item-card"
-          @click="goDetail(item._id)"
-        >
-          <!-- 卡片头部 -->
-          <view class="item-header">
-            <text class="item-emoji">{{ type === 'lost' ? '🔍' : '🎁' }}</text>
-            <text class="item-title">{{ item.title }}</text>
-            <view 
-              :class="['item-status', item.status === 'resolved' ? 'resolved' : 'open']"
-            >
-              {{ item.status === 'resolved' ? '已解决' : '进行中' }}
-            </view>
+  <view class="m3-page tab-page">
+    <view class="m3-shell">
+      <view class="home-hero m3-card">
+        <view class="hero-main">
+          <view>
+            <text class="eyebrow">Campus Lost & Found</text>
+            <text class="m3-title">校园失物招领</text>
+            <text class="m3-subtitle">{{ subtitle }}</text>
           </view>
+        </view>
 
-          <!-- 卡片内容 -->
-          <view class="item-content">
-            <view class="item-desc" v-if="item.description">
-              {{ item.description }}
-            </view>
-            <view class="item-meta">
-              <text class="meta-item" v-if="item.location">
-                📍 {{ item.location }}
-              </text>
-              <text class="meta-item" v-if="item.time">
-                🕐 {{ formatTime(item.time) }}
-              </text>
-            </view>
+        <view class="hero-stats">
+          <view class="stat-item">
+            <text class="stat-number">{{ total }}</text>
+            <text class="stat-label">当前结果</text>
           </view>
-
-          <!-- 卡片图片 -->
-          <view class="item-images" v-if="item.images && item.images.length">
-            <image 
-              v-for="(img, idx) in item.images.slice(0, 3)" 
-              :key="idx"
-              :src="img" 
-              class="item-image" 
-              mode="aspectFill"
-            />
+          <view class="stat-item">
+            <text class="stat-number">{{ typeSummary }}</text>
+            <text class="stat-label">信息类型</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-number">{{ categorySummary }}</text>
+            <text class="stat-label">分类范围</text>
           </view>
         </view>
       </view>
 
-        <view class="list-footer"></view>
-      </scroll-view>
+      <view class="filter-panel m3-surface">
+        <view class="search-row">
+          <text class="search-symbol">⌕</text>
+          <input
+            class="search-input"
+            v-model="keywordInput"
+            confirm-type="search"
+            placeholder="搜索物品、描述"
+            @confirm="applySearch"
+          />
+          <button class="search-btn" @tap="applySearch">搜索</button>
+        </view>
+
+        <view class="m3-segment type-segment">
+          <view
+            v-for="option in typeOptions"
+            :key="option.value"
+            class="m3-segment-item"
+            :class="{ active: query.type === option.value }"
+            @tap="selectType(option.value)"
+          >
+            <text>{{ option.label }}</text>
+          </view>
+        </view>
+
+        <scroll-view class="chip-scroll" scroll-x :show-scrollbar="false">
+          <view class="chip-track">
+            <view
+              v-for="option in categoryOptions"
+              :key="option.value"
+              class="category-chip"
+              :class="{ active: query.category === option.value }"
+              @tap="selectCategory(option.value)"
+            >
+              <text>{{ option.label }}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="m3-section-title">
+        <text>最新信息</text>
+        <text>{{ listSummary }}</text>
+      </view>
+
+      <view v-if="loading && items.length === 0" class="m3-card loading-card">
+        <view class="skeleton title"></view>
+        <view class="skeleton line"></view>
+        <view class="skeleton line short"></view>
+      </view>
+
+      <view v-else-if="items.length === 0" class="m3-card m3-empty">
+        <text class="m3-empty-title">暂无相关信息</text>
+        <text class="m3-empty-desc">可以调整筛选条件，或发布一条新的失物/招领。</text>
+        <button class="m3-btn secondary empty-action" @tap="goPublish">发布信息</button>
+      </view>
+
+      <view v-else class="m3-grid item-grid">
+        <view
+          v-for="item in items"
+          :key="item._id"
+          class="m3-card m3-grid-item item-card"
+          @tap="goDetail(item._id)"
+        >
+          <view class="thumb-wrap">
+            <image
+              v-if="firstImageOf(item)"
+              class="thumb"
+              :src="firstImageOf(item)"
+              mode="aspectFill"
+            />
+            <view v-else class="thumb-fallback">
+              <text>{{ shortCategory(item) }}</text>
+            </view>
+            <view class="thumb-badges">
+              <text class="m3-chip" :class="itemTypeTone(item.type)">
+                {{ itemTypeLabel(item.type) }}
+              </text>
+              <text class="m3-chip" :class="{ warn: item.status === 'resolved' }">
+                {{ statusLabel(item.status) }}
+              </text>
+            </view>
+          </view>
+
+          <view class="card-body">
+            <text class="item-title">{{ item.title }}</text>
+            <text class="item-desc">{{ item.description || '暂无描述' }}</text>
+
+            <view class="meta-row">
+              <text>{{ item.category || '未分类' }}</text>
+              <text>{{ formatDate(item.createdAt) }}</text>
+            </view>
+            <view class="meta-row">
+              <text>{{ item.location || '地点待补充' }}</text>
+              <text>{{ ownerName(item) }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view v-if="items.length > 0" class="load-state">
+        <text>{{ loadStateText }}</text>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
-import { request } from '@/common/request.js';
-import { APP_CONFIG } from '@/common/config.js';
+import { APP_CONFIG } from '../../common/config.js';
+import { request } from '../../common/request.js';
+import {
+  categories,
+  firstImage,
+  formatDate,
+  itemTypeLabel,
+  itemTypeTone,
+  statusLabel,
+  toastError
+} from '../../common/utils.js';
 
 export default {
   data() {
     return {
-      type: 'lost',
-      list: [],
-      keyword: '',
-      statusOptions: [
-        { value: '', label: '全部状态' },
-        { value: 'open', label: '进行中' },
-        { value: 'resolved', label: '已解决' }
+      subtitle: APP_CONFIG.app.homeSubtitle,
+      typeOptions: [
+        { label: '全部', value: '' },
+        { label: '寻物', value: 'lost' },
+        { label: '招领', value: 'found' }
       ],
-      statusIndex: 0,
+      categoryOptions: [{ label: '全部', value: '' }].concat(
+        categories.map((name) => ({ label: name, value: name }))
+      ),
+      keywordInput: '',
+      query: {
+        keyword: '',
+        type: '',
+        category: '',
+        status: 'open'
+      },
+      items: [],
+      page: 1,
+      pageSize: 10,
+      total: 0,
       loading: false,
-      appName: APP_CONFIG.app.name,
-      homeSubtitle: APP_CONFIG.app.homeSubtitle
+      loadingMore: false,
+      noMore: false,
+      loaded: false
+    };
+  },
+  computed: {
+    typeSummary() {
+      const hit = this.typeOptions.find((item) => item.value === this.query.type);
+      return hit ? hit.label : '全部';
+    },
+    categorySummary() {
+      return this.query.category || '全部';
+    },
+    listSummary() {
+      if (this.loading && this.items.length === 0) {
+        return '加载中';
+      }
+      return `${this.total} 条`;
+    },
+    loadStateText() {
+      if (this.loadingMore) {
+        return '正在加载';
+      }
+      if (this.noMore) {
+        return '已显示全部';
+      }
+      return '继续上滑查看更多';
     }
   },
+  onLoad() {
+    this.reload();
+  },
   onShow() {
-    this.fetchList();
-    this.getTabBar && this.getTabBar().setSelected(0);
+    this.setTabBarIndex();
+    if (this.loaded) {
+      this.reload();
+    }
+  },
+  onPullDownRefresh() {
+    this.reload().finally(() => {
+      uni.stopPullDownRefresh();
+    });
+  },
+  onReachBottom() {
+    this.loadMore();
   },
   methods: {
-    changeType(t) {
-      this.type = t;
-      this.fetchList();
+    setTabBarIndex() {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setSelected(0);
+      }
     },
-    changeStatus(index) {
-      this.statusIndex = index;
-      this.fetchList();
+    async reload() {
+      this.page = 1;
+      this.noMore = false;
+      await this.fetchItems(true);
     },
-    async fetchList() {
-      this.loading = true;
+    async loadMore() {
+      if (this.loading || this.loadingMore || this.noMore) {
+        return;
+      }
+      this.page += 1;
+      await this.fetchItems(false);
+    },
+    async fetchItems(reset) {
+      if (reset) {
+        this.loading = true;
+      } else {
+        this.loadingMore = true;
+      }
+
       try {
-        const params = { type: this.type };
-        const status = this.statusOptions[this.statusIndex].value;
-        if (this.keyword.trim()) params.keyword = this.keyword.trim();
-        if (status) params.status = status;
+        const params = {
+          page: this.page,
+          pageSize: this.pageSize,
+          status: this.query.status
+        };
+
+        if (this.query.keyword) params.keyword = this.query.keyword;
+        if (this.query.type) params.type = this.query.type;
+        if (this.query.category) params.category = this.query.category;
+
         const res = await request({
           url: '/items',
           data: params
         });
-        this.list = res.data || [];
-      } catch (e) {
-        uni.showToast({ title: '加载失败，请稍后重试', icon: 'none' });
+
+        const list = Array.isArray(res.data) ? res.data : [];
+        this.items = reset ? list : this.items.concat(list);
+        this.total = Number(res.total || 0);
+        this.noMore = this.items.length >= this.total || list.length < this.pageSize;
+        this.loaded = true;
+      } catch (error) {
+        if (!reset && this.page > 1) {
+          this.page -= 1;
+        }
+        toastError(error, '列表加载失败');
       } finally {
         this.loading = false;
+        this.loadingMore = false;
       }
     },
-    onStatusChange(e) {
-      this.statusIndex = Number(e.detail.value);
-      this.fetchList();
+    applySearch() {
+      this.query.keyword = this.keywordInput.trim();
+      this.reload();
+    },
+    selectType(value) {
+      if (this.query.type === value) return;
+      this.query.type = value;
+      this.reload();
+    },
+    selectCategory(value) {
+      if (this.query.category === value) return;
+      this.query.category = value;
+      this.reload();
+    },
+    goPublish() {
+      uni.switchTab({
+        url: '/pages/publish/publish'
+      });
     },
     goDetail(id) {
       uni.navigateTo({
-        url: '/pages/detail/detail?id=' + id
+        url: `/pages/detail/detail?id=${id}`
       });
     },
-    formatTime(t) {
-      if (!t) return '';
-      return t.slice(0, 10);
-    }
+    firstImageOf(item) {
+      return firstImage(item);
+    },
+    shortCategory(item) {
+      return String(item.category || '物品').slice(0, 2);
+    },
+    ownerName(item) {
+      if (item.owner && item.owner.username) {
+        return item.owner.username;
+      }
+      return '匿名';
+    },
+    formatDate,
+    itemTypeLabel,
+    itemTypeTone,
+    statusLabel
   }
-}
+};
 </script>
 
-<style scoped>
-.page {
-  min-height: 100vh;
-  padding: 0 20rpx 160rpx;
-  display: flex;
-  flex-direction: column;
-}
-
-.page-shell {
-  width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.header {
-  margin: 28rpx 0 24rpx;
-  padding: 56rpx 40rpx;
-  text-align: center;
-  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(110, 168, 255, 0.24) 52%, rgba(255, 255, 255, 0.95) 100%);
-  border: 1rpx solid rgba(148, 163, 184, 0.18);
-  border-radius: 32rpx;
-  box-shadow: 0 20rpx 60rpx rgba(79, 124, 255, 0.12);
-}
-
-.header-icon {
-  font-size: 88rpx;
-  margin-bottom: 18rpx;
-}
-
-.header-title {
-  font-size: 50rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 10rpx;
-  letter-spacing: -1rpx;
-}
-
-.header-subtitle {
-  font-size: 28rpx;
-  color: #64748b;
-}
-
-.search-section {
-  padding: 0 0 24rpx;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1rpx solid rgba(148, 163, 184, 0.18);
-  border-radius: 24rpx;
-  padding: 0 24rpx;
-  box-shadow: 0 10rpx 30rpx rgba(15, 23, 42, 0.05);
-  transition: all 0.2s;
-}
-
-.search-box:focus-within {
-  border-color: rgba(79, 124, 255, 0.45);
-  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
-}
-
-.search-icon {
-  font-size: 32rpx;
-  margin-right: 16rpx;
-}
-
-.search-input {
-  display: block;
-  flex: 1;
-  min-height: 88rpx;
-  padding: 26rpx 0;
-  font-size: 28rpx;
-  line-height: 1.4;
-  color: #1f2937;
-  position: relative;
-  z-index: 2;
-}
-
-.search-input::placeholder {
-  color: #94a3b8;
-}
-
-.filter-section {
-  display: flex;
-  gap: 16rpx;
-  padding: 0 0 28rpx;
-  flex-wrap: wrap;
-}
-
-.filter-tag {
-  padding: 14rpx 26rpx;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1rpx solid rgba(148, 163, 184, 0.18);
-  border-radius: 999rpx;
-  font-size: 24rpx;
-  color: #64748b;
-  transition: all 0.22s;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
-}
-
-.filter-tag.active {
-  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 14rpx 34rpx rgba(79, 124, 255, 0.22);
-}
-
-.list-container {
-  flex: 1;
-  min-height: 0;
-}
-
-.list {
-  padding: 0;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 140rpx 0;
-}
-
-.loading-spinner {
-  width: 64rpx;
-  height: 64rpx;
-  border: 6rpx solid rgba(148, 163, 184, 0.18);
-  border-top-color: #4f7cff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 24rpx;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 28rpx;
-  color: #94a3b8;
-}
-
-.empty-state {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 40rpx;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 32rpx;
-  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.05);
-}
-
-.empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
-  opacity: 0.35;
-}
-
-.empty-text {
-  font-size: 34rpx;
-  color: #1f2937;
-  margin-bottom: 12rpx;
-  font-weight: 600;
-}
-
-.empty-hint {
-  font-size: 26rpx;
-  color: #94a3b8;
-}
-
-.item-card {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 28rpx;
-  padding: 30rpx;
-  margin-bottom: 22rpx;
-  transition: all 0.22s;
-  box-shadow: 0 14rpx 40rpx rgba(15, 23, 42, 0.06);
-}
-
-.item-card:active {
-  transform: translateY(-2rpx) scale(0.995);
-  box-shadow: 0 22rpx 48rpx rgba(15, 23, 42, 0.1);
-}
-
-.item-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 18rpx;
-}
-
-.item-emoji {
-  font-size: 40rpx;
-  margin-right: 16rpx;
-}
-
-.item-title {
-  flex: 1;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1.45;
-}
-
-.item-status {
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-}
-
-.item-status.open {
-  background: rgba(79, 124, 255, 0.1);
-  color: #3d68eb;
-}
-
-.item-status.resolved {
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
-}
-
-.item-content {
-  margin-bottom: 18rpx;
-}
-
-.item-desc {
-  font-size: 28rpx;
-  color: #64748b;
-  line-height: 1.7;
-  margin-bottom: 16rpx;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+<style>
+.home-hero {
+  padding: 34rpx;
   overflow: hidden;
 }
 
-.item-meta {
+.hero-main {
   display: flex;
-  gap: 22rpx;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24rpx;
 }
 
-.meta-item {
-  font-size: 24rpx;
-  color: #94a3b8;
+.eyebrow {
+  display: block;
+  margin-bottom: 10rpx;
+  color: #006a60;
+  font-size: 22rpx;
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
-.item-images {
+.hero-stats {
   display: flex;
-  gap: 12rpx;
+  gap: 16rpx;
+  margin-top: 32rpx;
+}
+
+.stat-item {
+  flex: 1;
+  min-width: 0;
+  padding: 20rpx 18rpx;
+  border-radius: 24rpx;
+  background: #edf6f1;
+}
+
+.stat-number {
+  display: block;
+  color: #143832;
+  font-size: 30rpx;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.stat-label {
+  display: block;
+  margin-top: 8rpx;
+  color: #66766f;
+  font-size: 22rpx;
+}
+
+.filter-panel {
+  margin-top: 24rpx;
+  padding: 20rpx;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  padding: 0 14rpx 0 24rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(111, 121, 116, 0.18);
+}
+
+.search-symbol {
+  width: 44rpx;
+  color: #60706a;
+  font-size: 34rpx;
+  font-weight: 800;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 80rpx;
+  color: #171d1b;
+  font-size: 28rpx;
+}
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 108rpx;
+  height: 64rpx;
+  border-radius: 999rpx;
+  background: #006a60;
+  color: #ffffff;
+  font-size: 25rpx;
+  font-weight: 700;
+}
+
+.type-segment {
   margin-top: 18rpx;
 }
 
-.item-image {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 22rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.12);
+.chip-scroll {
+  width: 100%;
+  margin-top: 18rpx;
+  white-space: nowrap;
 }
 
-.list-footer {
-  height: 40rpx;
+.chip-track {
+  display: inline-flex;
+  gap: 12rpx;
+  padding-right: 8rpx;
 }
 
-@media screen and (min-width: 768px) {
-  .page {
-    padding: 24px 24px 180px;
-  }
-
-  .header {
-    padding: 36px 32px;
-  }
-
-  .header-icon {
-    font-size: 56px;
-  }
-
-  .header-title {
-    font-size: 34px;
-  }
-
-  .header-subtitle,
-  .search-input,
-  .item-desc {
-    font-size: 16px;
-  }
-
-  .filter-tag,
-  .item-status,
-  .meta-item,
-  .loading-text,
-  .empty-hint {
-    font-size: 13px;
-  }
-
-  .search-box {
-    border-radius: 18px;
-    padding: 0 18px;
-  }
-
-  .search-input {
-    min-height: 44px;
-    padding: 12px 0;
-  }
-
-  .item-card {
-    padding: 24px;
-    border-radius: 24px;
-  }
-
-  .item-header {
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .item-title,
-  .empty-text {
-    font-size: 22px;
-  }
-
-  .item-images {
-    flex-wrap: wrap;
-  }
-
-  .item-image {
-    width: 128px;
-    height: 128px;
-    border-radius: 16px;
-  }
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58rpx;
+  padding: 0 24rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #4d5c57;
+  border: 1rpx solid #c8d2cc;
+  font-size: 24rpx;
+  font-weight: 650;
 }
 
-@media screen and (min-width: 1024px) {
-  .list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-  }
+.category-chip.active {
+  color: #00201c;
+  background: #cce8e1;
+  border-color: #cce8e1;
+}
 
-  .item-card {
-    margin-bottom: 0;
-    height: 100%;
-  }
+.item-grid {
+  align-items: stretch;
+}
 
-  .empty-state,
-  .loading-state {
-    grid-column: 1 / -1;
-  }
+.item-card {
+  overflow: hidden;
+}
+
+.thumb-wrap {
+  position: relative;
+  width: 100%;
+  height: 320rpx;
+  background: #e6efea;
+}
+
+.thumb,
+.thumb-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.thumb-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #006a60;
+  background: linear-gradient(135deg, #d7efe7 0%, #f1f6e9 100%);
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.thumb-badges {
+  position: absolute;
+  left: 18rpx;
+  right: 18rpx;
+  bottom: 16rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.card-body {
+  padding: 24rpx;
+}
+
+.item-title {
+  display: block;
+  color: #171d1b;
+  font-size: 31rpx;
+  font-weight: 760;
+  line-height: 1.28;
+}
+
+.item-desc {
+  display: -webkit-box;
+  min-height: 76rpx;
+  margin-top: 12rpx;
+  overflow: hidden;
+  color: #586760;
+  font-size: 25rpx;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  margin-top: 16rpx;
+}
+
+.meta-row text {
+  min-width: 0;
+  color: #6a7972;
+  font-size: 23rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading-card {
+  padding: 32rpx;
+}
+
+.skeleton {
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #e2e9e4 0%, #f5faf5 50%, #e2e9e4 100%);
+}
+
+.skeleton.title {
+  width: 52%;
+  height: 38rpx;
+}
+
+.skeleton.line {
+  width: 100%;
+  height: 24rpx;
+  margin-top: 26rpx;
+}
+
+.skeleton.short {
+  width: 68%;
+}
+
+.empty-action {
+  margin-top: 28rpx;
+}
+
+.load-state {
+  padding: 26rpx 0 8rpx;
+  color: #60706a;
+  font-size: 24rpx;
+  text-align: center;
 }
 </style>

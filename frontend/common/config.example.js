@@ -1,23 +1,18 @@
-// 配置说明：
-// 1) 首次运行前，请复制本文件为 `config.js`
-// 2) 支持通过项目根目录脚本 `node set-server-ip.js` 自动创建/更新 `config.js`
-
+// 首次运行可复制为 config.js；也可使用项目根目录的 set-server-ip.js 自动生成。
 export const APP_CONFIG = {
   app: {
     name: '校园失物招领',
-    homeSubtitle: '找回每一件重要的小物',
-    loginSubtitle: '登录校园失物招领',
-    registerSubtitle: '加入校园失物招领'
+    homeSubtitle: '找回每一件重要的小物'
   },
   api: {
-    // AUTO_MANAGED_BASE_URL: 可通过 `node set-server-ip.js` 自动替换
     baseUrl: 'http://localhost:3000',
     prefix: '/api',
     uploadPath: '/upload'
   },
   publish: {
     maxImages: 3
-  }
+  },
+  categories: ['证件', '数码', '书籍', '生活用品', '服饰', '钥匙', '校园卡', '其他']
 };
 
 export const API_BASE_URL = `${APP_CONFIG.api.baseUrl}${APP_CONFIG.api.prefix}`;

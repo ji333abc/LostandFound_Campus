@@ -1,51 +1,68 @@
 <template>
-  <view class="page">
-    <view class="page-shell">
-      <view class="header">
-        <text class="logo-icon">📝</text>
-        <text class="title">创建账号</text>
-        <text class="subtitle">{{ registerSubtitle }}</text>
-      </view>
+  <view class="m3-page">
+    <view class="auth-shell">
+      <view class="auth-card m3-card">
+        <text class="m3-title">注册</text>
+        <text class="m3-subtitle">创建账号后即可发布信息并接收匹配提醒。</text>
 
-    <view class="form-section">
-      <view class="section-label">必填信息</view>
-      <view class="input-wrapper">
-        <input class="input" v-model="form.username" placeholder="用户名" />
-      </view>
-      <view class="input-wrapper">
-        <input class="input" v-model="form.password" placeholder="密码" password />
-      </view>
+        <view class="m3-field">
+          <text class="m3-label">用户名</text>
+          <input class="m3-input" v-model="form.username" maxlength="20" placeholder="3-20 位字母、数字或下划线" />
+        </view>
 
-      <view class="section-label">选填信息</view>
-      <view class="input-wrapper">
-        <input class="input" v-model="form.studentId" placeholder="学号" />
-      </view>
-      <view class="input-wrapper">
-        <input class="input" v-model="form.college" placeholder="学院" />
-      </view>
-      <view class="input-wrapper">
-        <input class="input" v-model="form.phone" placeholder="手机号" />
-      </view>
-      <view class="input-wrapper">
-        <input class="input" v-model="form.wechat" placeholder="微信号" />
-      </view>
+        <view class="m3-field">
+          <text class="m3-label">密码</text>
+          <input class="m3-input" v-model="form.password" password maxlength="64" placeholder="至少 6 位" />
+        </view>
 
-        <button class="register-btn" :disabled="loading" @click="register">
-          <text v-if="!loading">立即注册</text>
-          <text v-else>注册中...</text>
+        <view class="m3-field">
+          <text class="m3-label">学号</text>
+          <input class="m3-input" v-model="form.studentId" placeholder="可选" />
+        </view>
+
+        <view class="m3-field">
+          <text class="m3-label">学院</text>
+          <input class="m3-input" v-model="form.college" placeholder="可选" />
+        </view>
+
+        <view class="form-split register-split">
+          <view class="m3-field split-item">
+            <text class="m3-label">手机号</text>
+            <input class="m3-input" v-model="form.phone" maxlength="11" type="number" placeholder="可选" />
+          </view>
+          <view class="m3-field split-item">
+            <text class="m3-label">微信</text>
+            <input class="m3-input" v-model="form.wechat" placeholder="可选" />
+          </view>
+        </view>
+
+        <button
+          class="m3-btn auth-submit"
+          :class="{ disabled: submitting }"
+          :disabled="submitting"
+          @tap="submit"
+        >
+          {{ submitting ? '注册中' : '注册' }}
         </button>
+
+        <view class="auth-switch">
+          <text>已有账号？</text>
+          <button class="m3-btn text" @tap="goLogin">登录</button>
+        </view>
       </view>
     </view>
   </view>
 </template>
 
 <script>
-import { request } from '@/common/request.js';
-import { APP_CONFIG } from '@/common/config.js';
+import { request } from '../../common/request.js';
+import { toastError } from '../../common/utils.js';
 
 export default {
   data() {
     return {
+      redirect: '',
+      submitting: false,
       form: {
         username: '',
         password: '',
@@ -53,215 +70,119 @@ export default {
         college: '',
         phone: '',
         wechat: ''
-      },
-      loading: false,
-      registerSubtitle: APP_CONFIG.app.registerSubtitle
-    }
+      }
+    };
+  },
+  onLoad(options) {
+    this.redirect = options && options.redirect ? decodeURIComponent(options.redirect) : '';
   },
   methods: {
-    async register() {
-      if (!this.form.username || !this.form.password) {
-        return uni.showToast({ title: '用户名和密码必填', icon: 'none' });
+    validate() {
+      const username = this.form.username.trim();
+      if (username.length < 3 || username.length > 20) {
+        uni.showToast({ title: '用户名需 3-20 位', icon: 'none' });
+        return false;
       }
-       if (this.loading) return;
-       this.loading = true;
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        uni.showToast({ title: '用户名格式不正确', icon: 'none' });
+        return false;
+      }
+      if (this.form.password.length < 6) {
+        uni.showToast({ title: '密码至少 6 位', icon: 'none' });
+        return false;
+      }
+      if (this.form.phone && !/^1[3-9]\d{9}$/.test(this.form.phone)) {
+        uni.showToast({ title: '手机号格式不正确', icon: 'none' });
+        return false;
+      }
+      return true;
+    },
+    async submit() {
+      if (!this.validate() || this.submitting) {
+        return;
+      }
+
+      this.submitting = true;
       try {
         await request({
           url: '/auth/register',
           method: 'POST',
-          data: this.form
+          data: {
+            username: this.form.username.trim(),
+            password: this.form.password,
+            studentId: this.form.studentId.trim(),
+            college: this.form.college.trim(),
+            phone: this.form.phone.trim(),
+            wechat: this.form.wechat.trim()
+          }
         });
-        uni.showToast({ title: '注册成功，请登录', icon: 'success' });
+
+        uni.showToast({
+          title: '注册成功',
+          icon: 'success'
+        });
+
         setTimeout(() => {
-          uni.navigateBack();
-        }, 500);
-      } catch (e) {
-        // 显示后端返回的具体错误信息
-        const errorMsg = e.data?.message || e.message || '注册失败，请稍后重试';
-        uni.showToast({ 
-          title: errorMsg, 
-          icon: 'none',
-          duration: 2500
-        });
+          this.goLogin();
+        }, 350);
+      } catch (error) {
+        toastError(error, '注册失败');
       } finally {
-        this.loading = false;
+        this.submitting = false;
       }
+    },
+    goLogin() {
+      const redirect = this.redirect ? `?redirect=${encodeURIComponent(this.redirect)}` : '';
+      uni.redirectTo({
+        url: `/pages/login/login${redirect}`
+      });
     }
   }
-}
+};
 </script>
 
-<style scoped>
-.page {
-  min-height: 100vh;
-  padding: 68rpx 32rpx 96rpx;
+<style>
+.auth-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 56rpx);
 }
 
-.page-shell {
+.auth-card {
   width: 100%;
   max-width: 720rpx;
-  margin: 0 auto;
+  padding: 42rpx 34rpx;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 42rpx;
-}
-
-.logo-icon {
-  width: 132rpx;
-  height: 132rpx;
-  line-height: 132rpx;
-  font-size: 72rpx;
-  display: block;
-  margin: 0 auto 24rpx;
-  border-radius: 36rpx;
-  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(124, 58, 237, 0.12) 100%);
-}
-
-.title {
-  font-size: 52rpx;
-  font-weight: 700;
-  color: #1f2937;
-  display: block;
-  margin-bottom: 12rpx;
-  letter-spacing: -1rpx;
-}
-
-.subtitle {
-  font-size: 28rpx;
-  color: #94a3b8;
-  display: block;
-}
-
-.form-section {
-  max-width: 640rpx;
-  margin: 0 auto;
-  padding: 36rpx 30rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 32rpx;
-  box-shadow: 0 20rpx 54rpx rgba(15, 23, 42, 0.08);
-}
-
-.section-label {
-  font-size: 23rpx;
-  font-weight: 700;
-  color: #64748b;
-  margin-bottom: 14rpx;
-  margin-top: 30rpx;
-  letter-spacing: 1rpx;
-}
-
-.section-label:first-child {
-  margin-top: 0;
-}
-
-.input-wrapper {
-  margin-bottom: 18rpx;
-}
-
-.input {
-  display: block;
+.auth-submit {
   width: 100%;
-  min-height: 96rpx;
-  padding: 26rpx 24rpx;
-  background: rgba(248, 250, 252, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 22rpx;
-  font-size: 30rpx;
-  line-height: 1.4;
-  color: #1f2937;
-  transition: all 0.2s;
-  position: relative;
-  z-index: 2;
+  margin-top: 34rpx;
 }
 
-.input::placeholder {
-  color: #94a3b8;
+.auth-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  margin-top: 22rpx;
+  color: #60706a;
+  font-size: 25rpx;
 }
 
-.input:focus {
-  border-color: rgba(79, 124, 255, 0.42);
-  box-shadow: 0 0 0 8rpx rgba(79, 124, 255, 0.08);
-}
-
-.register-btn {
-  width: 100%;
-  min-height: 96rpx;
-  padding: 0 28rpx;
-  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
-  color: #ffffff;
-  border-radius: 24rpx;
-  text-align: center;
-  font-size: 30rpx;
-  font-weight: 600;
-  border: none;
-  margin-top: 24rpx;
-  line-height: 96rpx;
-  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.2);
-}
-
-.register-btn:active {
-  transform: translateY(2rpx);
-}
-
-.register-btn:disabled {
-  background: #cbd5e1;
-  opacity: 0.9;
-  box-shadow: none;
+.register-split {
+  display: flex;
+  flex-direction: column;
 }
 
 @media screen and (min-width: 768px) {
-  .page {
-    padding: 48px 24px 64px;
+  .register-split {
+    flex-direction: row;
+    gap: 20rpx;
   }
 
-  .page-shell {
-    max-width: 440px;
-  }
-
-  .header {
-    margin-bottom: 28px;
-  }
-
-  .logo-icon {
-    width: 72px;
-    height: 72px;
-    line-height: 72px;
-    font-size: 38px;
-    border-radius: 20px;
-    margin-bottom: 16px;
-  }
-
-  .title {
-    font-size: 28px;
-  }
-
-  .subtitle,
-  .section-label {
-    font-size: 14px;
-  }
-
-  .form-section {
-    max-width: none;
-    padding: 24px;
-    border-radius: 24px;
-  }
-
-  .input {
-    min-height: 48px;
-    padding: 12px 14px;
-    font-size: 15px;
-    border-radius: 14px;
-  }
-
-  .register-btn {
-    min-height: 48px;
-    line-height: 48px;
-    font-size: 15px;
-    border-radius: 14px;
-    margin-top: 18px;
+  .split-item {
+    flex: 1;
   }
 }
 </style>

@@ -1,14 +1,18 @@
 <template>
-  <view class="tabbar">
-    <view
-      v-for="(item, index) in list"
-      :key="index"
-      class="tab-item"
-      :class="{ active: selected === index }"
-      @click="switchTab(index)"
-    >
-      <text class="tab-icon">{{ item.icon }}</text>
-      <text class="tab-text">{{ item.text }}</text>
+  <view class="tab-shell" :style="{ paddingBottom: safeBottom + 'px' }">
+    <view class="tab-bar">
+      <view
+        v-for="(item, index) in list"
+        :key="item.pagePath"
+        class="tab-item"
+        :class="{ active: selected === index }"
+        @tap="switchTab(item.pagePath)"
+      >
+        <view class="icon-pill">
+          <text class="tab-symbol">{{ item.symbol }}</text>
+        </view>
+        <text class="tab-label">{{ item.text }}</text>
+      </view>
     </view>
   </view>
 </template>
@@ -18,45 +22,71 @@ export default {
   data() {
     return {
       selected: 0,
+      safeBottom: 0,
       list: [
-        { pagePath: '/pages/index/index', text: '首页', icon: '🏠' },
-        { pagePath: '/pages/publish/publish', text: '发布', icon: '✏️' },
-        { pagePath: '/pages/my/my', text: '我的', icon: '👤' }
+        {
+          pagePath: 'pages/index/index',
+          text: '首页',
+          symbol: '⌂'
+        },
+        {
+          pagePath: 'pages/publish/publish',
+          text: '发布',
+          symbol: '+'
+        },
+        {
+          pagePath: 'pages/my/my',
+          text: '我的',
+          symbol: '○'
+        }
       ]
     };
   },
+  created() {
+    try {
+      const info = uni.getSystemInfoSync();
+      const insets = info.safeAreaInsets || {};
+      this.safeBottom = insets.bottom || 0;
+    } catch (error) {
+      this.safeBottom = 0;
+    }
+  },
   methods: {
-    switchTab(index) {
-      if (index === this.selected) return;
-      const url = this.list[index].pagePath;
-      this.selected = index;
-      uni.switchTab({ url });
-    },
     setSelected(index) {
       this.selected = index;
+    },
+    switchTab(path) {
+      uni.switchTab({
+        url: `/${path}`
+      });
     }
   }
 };
 </script>
 
-<style scoped>
-.tabbar {
+<style>
+.tab-shell {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 48rpx);
-  max-width: 760px;
-  bottom: 24rpx;
-  height: 112rpx;
-  background: rgba(255, 255, 255, 0.9);
-  display: flex;
-  border: 1rpx solid rgba(148, 163, 184, 0.18);
-  border-radius: 32rpx;
-  box-shadow: 0 18rpx 60rpx rgba(15, 23, 42, 0.12);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 999;
-  padding: 10rpx;
-  padding-bottom: calc(10rpx + env(safe-area-inset-bottom));
-  backdrop-filter: blur(18rpx);
+  padding: 14rpx 24rpx 18rpx;
+  background: rgba(248, 250, 246, 0.92);
+  border-top: 1rpx solid rgba(111, 121, 116, 0.16);
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 760rpx;
+  height: 116rpx;
+  margin: 0 auto;
+  padding: 8rpx;
+  border-radius: 36rpx;
+  background: #edf4ef;
+  box-shadow: 0 14rpx 36rpx rgba(20, 48, 42, 0.12);
 }
 
 .tab-item {
@@ -65,57 +95,39 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6rpx;
-  border-radius: 24rpx;
-  transition: all 0.22s;
+  min-width: 0;
+  color: #60706a;
 }
 
-.tab-icon {
-  font-size: 38rpx;
-  opacity: 0.62;
-  transition: all 0.22s;
+.icon-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 74rpx;
+  height: 46rpx;
+  border-radius: 999rpx;
 }
 
-.tab-text {
+.tab-symbol {
+  color: inherit;
+  font-size: 36rpx;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tab-label {
+  margin-top: 7rpx;
+  color: inherit;
   font-size: 22rpx;
-  color: #94a3b8;
-  transition: all 0.22s;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, rgba(79, 124, 255, 0.12) 0%, rgba(110, 168, 255, 0.18) 100%);
+  color: #006a60;
 }
 
-.tab-item.active .tab-icon {
-  opacity: 1;
-  transform: scale(1.08);
-}
-
-.tab-item.active .tab-text {
-  color: #335fe3;
-  font-weight: 600;
-}
-
-@media screen and (min-width: 768px) {
-  .tabbar {
-    max-width: 760px;
-    height: 78px;
-    padding: 8px;
-    border-radius: 26px;
-  }
-
-  .tab-item {
-    gap: 4px;
-    border-radius: 18px;
-  }
-
-  .tab-icon {
-    font-size: 24px;
-  }
-
-  .tab-text {
-    font-size: 12px;
-  }
+.tab-item.active .icon-pill {
+  background: #cce8e1;
 }
 </style>
-

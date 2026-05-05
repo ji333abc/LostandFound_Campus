@@ -1,652 +1,525 @@
 <template>
-  <view class="page">
-    <view class="page-shell">
-      <!-- 未登录状态 -->
-      <view v-if="!user" class="login-prompt">
-      <text class="prompt-icon">👤</text>
-      <text class="prompt-title">你还未登录</text>
-      <text class="prompt-text">登录后可以查看和管理自己的发布记录</text>
-      <button class="login-btn" @click="goLogin">立即登录</button>
-    </view>
-
-    <!-- 已登录状态 -->
-    <view v-else>
-      <!-- 用户信息卡片 -->
-      <view class="user-section">
-        <view class="avatar-large">{{ (user.username || '').slice(0, 1).toUpperCase() }}</view>
-        <view class="user-name">{{ user.username }}</view>
-        <view class="user-info" v-if="user.college || user.studentId">
-          {{ user.college || '' }} {{ user.studentId || '' }}
-        </view>
-        <view class="logout-btn" @click="logout">
-          <text>退出登录</text>
-        </view>
-      </view>
-
-      <!-- 管理员入口 -->
-      <view v-if="user.role === 'admin'" class="admin-section" @click="goAdmin">
-        <view class="admin-card">
-          <text class="admin-icon">⚙️</text>
-          <view class="admin-content">
-            <text class="admin-title">管理后台</text>
-            <text class="admin-desc">管理所有失物信息与状态</text>
+  <view class="m3-page tab-page">
+    <view class="m3-shell">
+      <view class="profile-card m3-card">
+        <view class="profile-main">
+          <view class="avatar">
+            <text>{{ avatarText }}</text>
           </view>
-          <text class="admin-arrow">→</text>
-        </view>
-      </view>
-
-      <!-- 匹配提醒 -->
-      <view class="list-section">
-        <view class="section-header">
-          <view class="section-label-row">
-            <text class="section-label">匹配提醒</text>
-            <view v-if="unreadCount > 0" class="notify-badge">{{ unreadCount }}</view>
-          </view>
-          <text v-if="notifications.length && unreadCount > 0" class="mark-all-btn" @click="handleMarkAllRead">全部已读</text>
-        </view>
-
-        <view v-if="notifications.length" class="notify-list">
-          <view
-            v-for="notification in notifications"
-            :key="notification._id"
-            class="notify-card"
-            :class="notification.read ? 'read' : 'unread'"
-            @click="openNotification(notification)"
-          >
-            <view class="notify-top">
-              <text class="notify-title">{{ notification.title }}</text>
-              <view v-if="!notification.read" class="notify-dot"></view>
-            </view>
-            <text class="notify-content">{{ notification.content }}</text>
-            <view class="notify-bottom">
-              <text class="notify-score">规则匹配 {{ notification.matchScore || 0 }} 分</text>
-              <text class="notify-time">{{ formatTime(notification.createdAt) }}</text>
-            </view>
+          <view class="profile-info">
+            <text class="profile-name">{{ loggedIn ? displayName : '未登录' }}</text>
+            <text class="profile-meta">{{ loggedIn ? profileMeta : '登录后查看通知和发布记录' }}</text>
           </view>
         </view>
 
-        <view v-else class="empty-mini">
-          <text class="empty-mini-text">暂时还没有新的可能匹配提醒</text>
+        <view v-if="loggedIn" class="profile-actions">
+          <button class="m3-btn secondary" @tap="goPublish">发布</button>
+          <button v-if="isAdmin" class="m3-btn secondary" @tap="goAdmin">管理</button>
+          <button class="m3-btn text" @tap="logout">退出</button>
+        </view>
+        <view v-else class="profile-actions">
+          <button class="m3-btn" @tap="goLogin">登录</button>
+          <button class="m3-btn secondary" @tap="goRegister">注册</button>
         </view>
       </view>
 
-      <!-- 我的发布 -->
-      <view class="list-section">
-        <view class="section-label">我的发布</view>
-        
-        <view v-if="myList.length" class="item-list">
-          <view
-            v-for="item in myList"
-            :key="item._id"
-            class="item-card"
-            @click="goDetail(item._id)"
-          >
-            <view class="item-top">
-              <text class="item-emoji">{{ item.type === 'lost' ? '🔍' : '🎁' }}</text>
-              <text class="item-title">{{ item.title }}</text>
-            </view>
-            <view class="item-bottom">
-              <view class="item-status" :class="item.status === 'resolved' ? 'resolved' : 'open'">
-                {{ item.status === 'resolved' ? '✓ 已解决' : '⏳ 进行中' }}
+      <block v-if="loggedIn">
+        <view class="m3-card block-card notification-card">
+          <view class="block-title-row">
+            <text class="block-title">通知</text>
+            <button class="notification-more-btn" @tap="goNotifications">
+              {{ unreadCount ? `${unreadCount} 条未读` : '查看全部' }}
+            </button>
+          </view>
+
+          <view v-if="notifications.length === 0" class="soft-empty">
+            <text>暂无通知</text>
+          </view>
+          <view v-else class="notice-list">
+            <view
+              v-for="notice in notifications"
+              :key="notice._id"
+              class="notice-item"
+              :class="{ unread: !notice.read }"
+              @tap="openNotification(notice)"
+            >
+              <view class="notice-dot"></view>
+              <view class="notice-main">
+                <text class="notice-title">{{ notice.title }}</text>
+                <text class="notice-content">{{ notice.content }}</text>
               </view>
-              <text class="item-time" v-if="item.createdAt">
-                {{ formatTime(item.createdAt) }}
+              <text class="notice-score">{{ notice.matchScore || 0 }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="m3-section-title">
+          <text>我的发布</text>
+          <text>{{ items.length }} 条</text>
+        </view>
+
+        <view v-if="loading" class="m3-card soft-empty loading-block">
+          <text>正在加载</text>
+        </view>
+        <view v-else-if="items.length === 0" class="m3-card m3-empty">
+          <text class="m3-empty-title">暂无发布</text>
+          <button class="m3-btn secondary empty-action" @tap="goPublish">发布信息</button>
+        </view>
+        <view v-else class="my-list">
+          <view v-for="item in items" :key="item._id" class="m3-card my-item">
+            <view class="my-item-head" @tap="goDetail(item._id)">
+              <view>
+                <text class="my-item-title">{{ item.title }}</text>
+                <text class="my-item-meta">
+                  {{ itemTypeLabel(item.type) }} · {{ item.category || '未分类' }} · {{ formatDateTime(item.createdAt) }}
+                </text>
+              </view>
+              <text class="m3-chip" :class="{ warn: item.status === 'resolved' }">
+                {{ statusLabel(item.status) }}
               </text>
             </view>
+            <view class="my-item-actions">
+              <button class="m3-btn secondary small-action" @tap="goDetail(item._id)">详情</button>
+              <button
+                class="m3-btn secondary small-action"
+                @tap="toggleStatus(item)"
+              >
+                {{ item.status === 'open' ? '完结' : '开启' }}
+              </button>
+              <button class="m3-btn danger small-action" @tap="deleteItem(item)">删除</button>
+            </view>
           </view>
         </view>
-
-        <view v-else class="empty-state">
-          <text class="empty-icon">📝</text>
-          <text class="empty-text">你还没有发布任何信息</text>
-          <text class="empty-hint">点击底部"发布"按钮开始发布</text>
-        </view>
-      </view>
-
-      <view class="bottom-safe"></view>
-      </view>
+      </block>
     </view>
   </view>
 </template>
 
 <script>
 import {
-  getMyItems,
-  getMyNotifications,
-  markNotificationRead,
-  markAllNotificationsRead
-} from '@/common/request.js';
+  request,
+  getStoredUser,
+  getToken,
+  saveSession,
+  clearSession,
+  isLoggedIn
+} from '../../common/request.js';
+import {
+  formatDateTime,
+  itemTypeLabel,
+  statusLabel,
+  toastError,
+  userIdOf
+} from '../../common/utils.js';
+
+function confirmAction(title, content) {
+  return new Promise((resolve) => {
+    uni.showModal({
+      title,
+      content,
+      success(res) {
+        resolve(Boolean(res.confirm));
+      },
+      fail() {
+        resolve(false);
+      }
+    });
+  });
+}
 
 export default {
   data() {
     return {
+      loggedIn: false,
       user: null,
-      myList: [],
+      items: [],
       notifications: [],
-      unreadCount: 0
+      unreadCount: 0,
+      loading: false
+    };
+  },
+  computed: {
+    displayName() {
+      return (this.user && this.user.username) || '用户';
+    },
+    avatarText() {
+      return this.loggedIn ? this.displayName.slice(0, 1).toUpperCase() : '未';
+    },
+    profileMeta() {
+      if (!this.user) return '';
+      const parts = [];
+      if (this.user.college) parts.push(this.user.college);
+      parts.push(this.isAdmin ? '管理员' : '普通用户');
+      return parts.join(' · ');
+    },
+    isAdmin() {
+      return this.user && this.user.role === 'admin';
     }
   },
   onShow() {
-    this.user = uni.getStorageSync('user') || null;
-    if (this.user) {
-      this.fetchMyItems();
-      this.fetchNotifications();
-    }
-
-    this.getTabBar && this.getTabBar().setSelected(2);
+    this.setTabBarIndex();
+    this.refreshSession();
   },
   methods: {
-    goLogin() {
-      uni.navigateTo({ url: '/pages/login/login' });
-    },
-    async fetchMyItems() {
-      try {
-        const res = await getMyItems();
-        this.myList = res.data || [];
-      } catch (e) {
-        this.myList = [];
-        uni.showToast({ title: '加载我的发布失败', icon: 'none' });
+    setTabBarIndex() {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setSelected(2);
       }
     },
-    async fetchNotifications() {
-      try {
-        const res = await getMyNotifications({ limit: 10 });
-        this.notifications = res.data || [];
-        this.unreadCount = res.unreadCount || 0;
-      } catch (e) {
+    refreshSession() {
+      this.loggedIn = isLoggedIn();
+      this.user = getStoredUser();
+
+      if (this.loggedIn) {
+        this.loadAll();
+      } else {
+        this.items = [];
         this.notifications = [];
         this.unreadCount = 0;
       }
     },
-    goDetail(id) {
+    async loadAll() {
+      this.loading = true;
+      try {
+        await this.loadMe();
+        await Promise.all([this.loadItems(), this.loadNotifications()]);
+      } catch (error) {
+        toastError(error, '数据加载失败');
+      } finally {
+        this.loading = false;
+      }
+    },
+    async loadMe() {
+      const res = await request({
+        url: '/auth/me'
+      });
+      const user = res.data || null;
+      if (user) {
+        user.id = userIdOf(user);
+        this.user = user;
+        saveSession(getToken(), user);
+      }
+    },
+    async loadItems() {
+      const res = await request({
+        url: '/items/my'
+      });
+      this.items = Array.isArray(res.data) ? res.data : [];
+    },
+    async loadNotifications() {
+      const res = await request({
+        url: '/notifications',
+        data: {
+          limit: 5
+        }
+      });
+      this.notifications = Array.isArray(res.data) ? res.data : [];
+      this.unreadCount = Number(res.unreadCount || 0);
+    },
+    goLogin() {
       uni.navigateTo({
-        url: '/pages/detail/detail?id=' + id
+        url: '/pages/login/login?redirect=%2Fpages%2Fmy%2Fmy'
       });
     },
-    async openNotification(notification) {
-      try {
-        if (!notification.read) {
-          await markNotificationRead(notification._id);
-          notification.read = true;
-          this.unreadCount = Math.max(0, this.unreadCount - 1);
-        }
-      } catch (e) {}
-
-      const targetId = notification.matchedItem && notification.matchedItem._id;
-      if (targetId) {
-        this.goDetail(targetId);
-      }
+    goRegister() {
+      uni.navigateTo({
+        url: '/pages/register/register'
+      });
     },
-    async handleMarkAllRead() {
-      try {
-        await markAllNotificationsRead();
-        this.notifications = this.notifications.map((item) => ({
-          ...item,
-          read: true
-        }));
-        this.unreadCount = 0;
-        uni.showToast({ title: '已全部标记为已读', icon: 'success' });
-      } catch (e) {
-        uni.showToast({ title: '操作失败', icon: 'none' });
-      }
+    goPublish() {
+      uni.switchTab({
+        url: '/pages/publish/publish'
+      });
+    },
+    goNotifications() {
+      uni.navigateTo({
+        url: '/pages/notifications/notifications'
+      });
     },
     goAdmin() {
       uni.navigateTo({
         url: '/pages/admin/items'
       });
     },
-    formatTime(t) {
-      if (!t) return '';
-      return t.slice(0, 10);
+    goDetail(id) {
+      uni.navigateTo({
+        url: `/pages/detail/detail?id=${id}`
+      });
     },
     logout() {
-      uni.showModal({
-        title: '确认退出',
-        content: '确定要退出当前账号吗？',
-        success: (res) => {
-          if (!res.confirm) return;
-          uni.removeStorageSync('token');
-          uni.removeStorageSync('user');
-          this.user = null;
-          this.myList = [];
-          this.notifications = [];
-          this.unreadCount = 0;
-          uni.showToast({ title: '已退出登录', icon: 'success' });
-          setTimeout(() => {
-            uni.switchTab({ url: '/pages/index/index' });
-          }, 400);
-        }
+      clearSession();
+      this.refreshSession();
+      uni.showToast({
+        title: '已退出',
+        icon: 'success'
       });
-    }
+    },
+    async openNotification(notice) {
+      if (!notice.read) {
+        try {
+          await request({
+            url: `/notifications/${notice._id}/read`,
+            method: 'PUT'
+          });
+          notice.read = true;
+          this.unreadCount = Math.max(0, this.unreadCount - 1);
+        } catch (error) {
+          toastError(error, '通知更新失败');
+        }
+      }
+
+      const target =
+        (notice.matchedItem && notice.matchedItem._id) ||
+        (notice.sourceItem && notice.sourceItem._id);
+      if (target) {
+        this.goDetail(target);
+      }
+    },
+    async toggleStatus(item) {
+      const nextStatus = item.status === 'open' ? 'resolved' : 'open';
+      try {
+        const res = await request({
+          url: `/items/${item._id}`,
+          method: 'PUT',
+          data: {
+            status: nextStatus
+          }
+        });
+        Object.assign(item, res.data || { status: nextStatus });
+      } catch (error) {
+        toastError(error, '状态更新失败');
+      }
+    },
+    async deleteItem(item) {
+      const ok = await confirmAction('删除信息', '删除后不可恢复，确认继续？');
+      if (!ok) return;
+
+      try {
+        await request({
+          url: `/items/${item._id}`,
+          method: 'DELETE'
+        });
+        this.items = this.items.filter((entry) => entry._id !== item._id);
+      } catch (error) {
+        toastError(error, '删除失败');
+      }
+    },
+    formatDateTime,
+    itemTypeLabel,
+    statusLabel
   }
-}
+};
 </script>
 
-<style scoped>
-.page {
-  min-height: 100vh;
-  padding: 0 20rpx 160rpx;
+<style>
+.profile-card {
+  padding: 32rpx;
 }
 
-.page-shell {
-  width: 100%;
-  max-width: 980px;
-  margin: 0 auto;
-}
-
-.login-prompt {
-  margin: 40rpx 0 0;
+.profile-main {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 120rpx 40rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 32rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 16rpx 44rpx rgba(15, 23, 42, 0.06);
+  gap: 22rpx;
 }
 
-.prompt-icon {
-  font-size: 120rpx;
-  margin-bottom: 32rpx;
-  opacity: 0.35;
-}
-
-.prompt-title {
-  font-size: 38rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 12rpx;
-}
-
-.prompt-text {
-  font-size: 28rpx;
-  color: #94a3b8;
-  text-align: center;
-  margin-bottom: 40rpx;
-}
-
-.login-btn {
-  padding: 24rpx 60rpx;
-  background: linear-gradient(135deg, #4f7cff 0%, #6ea8ff 100%);
-  color: #ffffff;
-  border-radius: 999rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  border: none;
-  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.2);
-}
-
-.login-btn:active {
-  transform: translateY(2rpx);
-}
-
-.user-section {
-  margin: 28rpx 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 54rpx 40rpx 40rpx;
-  background: linear-gradient(135deg, rgba(79, 124, 255, 0.14) 0%, rgba(255, 255, 255, 0.96) 58%, rgba(236, 242, 255, 0.98) 100%);
-  border-radius: 32rpx;
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 18rpx 54rpx rgba(15, 23, 42, 0.08);
-}
-
-.avatar-large {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 64rpx;
-  background: linear-gradient(135deg, #4f7cff 0%, #7c3aed 100%);
-  color: #ffffff;
+.avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 56rpx;
-  font-weight: 700;
-  margin-bottom: 24rpx;
-  box-shadow: 0 16rpx 36rpx rgba(79, 124, 255, 0.22);
-}
-
-.user-name {
-  font-size: 38rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 8rpx;
-}
-
-.user-info {
-  font-size: 26rpx;
-  color: #64748b;
-  margin-bottom: 24rpx;
-}
-
-.logout-btn {
-  padding: 14rpx 34rpx;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
+  width: 104rpx;
+  height: 104rpx;
   border-radius: 999rpx;
+  background: #cce8e1;
+  color: #006a60;
+  font-size: 42rpx;
+  font-weight: 800;
+}
+
+.profile-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name {
+  display: block;
+  color: #171d1b;
+  font-size: 38rpx;
+  font-weight: 780;
+}
+
+.profile-meta {
+  display: block;
+  margin-top: 8rpx;
+  color: #60706a;
   font-size: 25rpx;
-  color: #64748b;
-}
-
-.logout-btn:active {
-  background: rgba(248, 250, 252, 0.95);
-}
-
-.admin-section,
-.list-section {
-  padding: 0;
-}
-
-.admin-section {
-  margin-bottom: 28rpx;
-}
-
-.admin-card {
-  display: flex;
-  align-items: center;
-  padding: 26rpx;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1rpx solid rgba(245, 158, 11, 0.16);
-  border-radius: 26rpx;
-  box-shadow: 0 12rpx 34rpx rgba(245, 158, 11, 0.08);
-}
-
-.admin-card:active {
-  transform: translateY(-2rpx);
-}
-
-.admin-icon {
-  font-size: 40rpx;
-  margin-right: 16rpx;
-}
-
-.admin-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.admin-title {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4rpx;
-}
-
-.admin-desc {
-  font-size: 24rpx;
-  color: #b45309;
-}
-
-.admin-arrow {
-  font-size: 32rpx;
-  color: #b45309;
-}
-
-.list-section {
-  margin-bottom: 30rpx;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18rpx;
-}
-
-.section-label-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.section-label {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 18rpx;
-  letter-spacing: 1rpx;
-}
-
-.section-header .section-label {
-  margin-bottom: 0;
-}
-
-.notify-badge {
-  min-width: 36rpx;
-  height: 36rpx;
-  padding: 0 10rpx;
-  border-radius: 18rpx;
-  background: #ef4444;
-  color: #ffffff;
-  font-size: 22rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mark-all-btn {
-  font-size: 24rpx;
-  color: #3d68eb;
-  font-weight: 600;
-}
-
-.notify-list,
-.item-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.notify-card,
-.item-card {
-  padding: 24rpx;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1rpx solid rgba(148, 163, 184, 0.16);
-  border-radius: 26rpx;
-  transition: all 0.22s;
-  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.05);
-}
-
-.notify-card.unread {
-  border-color: rgba(79, 124, 255, 0.16);
-  background: rgba(79, 124, 255, 0.05);
-}
-
-.notify-card:active,
-.item-card:active {
-  transform: translateY(-2rpx) scale(0.995);
-  box-shadow: 0 18rpx 40rpx rgba(15, 23, 42, 0.08);
-}
-
-.notify-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16rpx;
-  margin-bottom: 12rpx;
-}
-
-.notify-title {
-  flex: 1;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
   line-height: 1.45;
 }
 
-.notify-dot {
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 28rpx;
+}
+
+.block-card {
+  margin-top: 24rpx;
+  padding: 30rpx;
+}
+
+.notification-card {
+  position: relative;
+  padding-top: 34rpx;
+}
+
+.block-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.block-title {
+  color: #171d1b;
+  font-size: 32rpx;
+  font-weight: 760;
+}
+
+.small-btn {
+  min-height: 56rpx;
+  padding: 0 12rpx;
+  font-size: 24rpx;
+}
+
+.notification-more-btn {
+  position: absolute;
+  top: 22rpx;
+  right: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 128rpx;
+  min-height: 54rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: #cce8e1;
+  color: #006a60;
+  font-size: 23rpx;
+  font-weight: 750;
+}
+
+.notice-list {
+  margin-top: 18rpx;
+}
+
+.notice-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 0;
+  border-top: 1rpx solid #e1e8e3;
+}
+
+.notice-dot {
   width: 16rpx;
   height: 16rpx;
-  border-radius: 8rpx;
-  background: #ef4444;
+  border-radius: 999rpx;
+  background: #c1ccc6;
 }
 
-.notify-content {
-  display: block;
-  font-size: 26rpx;
-  line-height: 1.7;
-  color: #64748b;
-  margin-bottom: 16rpx;
+.notice-item.unread .notice-dot {
+  background: #006a60;
 }
 
-.notify-bottom,
-.item-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12rpx;
-}
-
-.notify-score,
-.item-time,
-.notify-time {
-  font-size: 23rpx;
-  color: #94a3b8;
-}
-
-.item-top {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.item-emoji {
-  font-size: 36rpx;
-  margin-right: 12rpx;
-}
-
-.item-title {
+.notice-main {
   flex: 1;
+  min-width: 0;
+}
+
+.notice-title,
+.notice-content {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-title {
+  color: #1f332d;
+  font-size: 27rpx;
+  font-weight: 750;
+}
+
+.notice-content {
+  margin-top: 7rpx;
+  color: #60706a;
+  font-size: 23rpx;
+}
+
+.notice-score {
+  flex: 0 0 auto;
+  color: #006a60;
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.soft-empty {
+  padding: 34rpx 0 12rpx;
+  color: #60706a;
+  font-size: 25rpx;
+  text-align: center;
+}
+
+.loading-block {
+  margin-top: 20rpx;
+}
+
+.my-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.my-item {
+  padding: 26rpx;
+}
+
+.my-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.my-item-title {
+  display: block;
+  color: #171d1b;
   font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
+  font-weight: 760;
+  line-height: 1.3;
+}
+
+.my-item-meta {
+  display: block;
+  margin-top: 8rpx;
+  color: #60706a;
+  font-size: 23rpx;
   line-height: 1.45;
 }
 
-.item-status {
-  padding: 8rpx 18rpx;
-  border-radius: 999rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-}
-
-.item-status.open {
-  background: rgba(79, 124, 255, 0.1);
-  color: #3d68eb;
-}
-
-.item-status.resolved {
-  background: rgba(34, 197, 94, 0.12);
-  color: #15803d;
-}
-
-.empty-state,
-.empty-mini {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1rpx solid rgba(148, 163, 184, 0.14);
-  border-radius: 28rpx;
-  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.04);
-}
-
-.empty-state {
+.my-item-actions {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 100rpx 40rpx;
+  gap: 12rpx;
+  margin-top: 22rpx;
 }
 
-.empty-mini {
-  padding: 28rpx 24rpx;
+.small-action {
+  flex: 1;
+  min-height: 66rpx;
+  font-size: 24rpx;
 }
 
-.empty-mini-text {
-  font-size: 26rpx;
-  color: #94a3b8;
-}
-
-.empty-icon {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
-  opacity: 0.3;
-}
-
-.empty-text {
-  font-size: 32rpx;
-  color: #1f2937;
-  margin-bottom: 12rpx;
-  font-weight: 600;
-}
-
-.empty-hint {
-  font-size: 26rpx;
-  color: #94a3b8;
-}
-
-.bottom-safe {
-  height: 40rpx;
-}
-
-@media screen and (min-width: 768px) {
-  .page {
-    padding: 24px 24px 180px;
-  }
-
-  .login-prompt,
-  .user-section {
-    border-radius: 24px;
-  }
-
-  .prompt-title,
-  .user-name {
-    font-size: 24px;
-  }
-
-  .prompt-text,
-  .user-info,
-  .notify-content,
-  .empty-hint,
-  .empty-mini-text {
-    font-size: 14px;
-  }
-
-  .login-btn,
-  .admin-title,
-  .notify-title,
-  .item-title,
-  .empty-text {
-    font-size: 16px;
-  }
-
-  .section-label,
-  .admin-desc,
-  .mark-all-btn,
-  .notify-score,
-  .item-time,
-  .notify-time,
-  .item-status {
-    font-size: 13px;
-  }
-
-  .notify-list,
-  .item-list {
-    gap: 14px;
-  }
-}
-
-@media screen and (min-width: 1024px) {
-  .notify-list,
-  .item-list {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-  }
-
-  .notify-card,
-  .item-card {
-    height: 100%;
-  }
+.empty-action {
+  margin-top: 24rpx;
 }
 </style>
