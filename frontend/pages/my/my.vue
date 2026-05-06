@@ -48,7 +48,7 @@
                 <text class="notice-title">{{ notice.title }}</text>
                 <text class="notice-content">{{ notice.content }}</text>
               </view>
-              <text class="notice-score">{{ notice.matchScore || 0 }}</text>
+              <text class="notice-score">AI {{ notice.matchScore || 0 }}</text>
             </view>
           </view>
         </view>

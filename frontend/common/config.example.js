@@ -1,16 +1,15 @@
-// 首次运行可复制为 config.js；也可使用项目根目录的 set-server-ip.js 自动生成。
 export const APP_CONFIG = {
   app: {
     name: '校园失物招领',
     homeSubtitle: '找回每一件重要的小物'
   },
   api: {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'http://localhost:3000',//后端访问地址
     prefix: '/api',
     uploadPath: '/upload'
   },
   publish: {
-    maxImages: 3
+    maxImages: 3//最大上传图片数
   },
   categories: ['证件', '数码', '书籍', '生活用品', '服饰', '钥匙', '校园卡', '其他']
 };

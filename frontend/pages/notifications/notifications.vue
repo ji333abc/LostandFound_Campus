@@ -49,7 +49,7 @@
             <view class="notice-head">
               <text class="notice-title">{{ notice.title }}</text>
               <text class="m3-chip" :class="{ tonal: notice.matchLevel !== 'high', primary: notice.matchLevel === 'high' }">
-                {{ notice.matchScore || 0 }}
+                AI {{ notice.matchScore || 0 }}
               </text>
             </view>
             <text class="notice-content">{{ notice.content }}</text>

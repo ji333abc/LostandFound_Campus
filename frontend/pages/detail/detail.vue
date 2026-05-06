@@ -99,7 +99,10 @@
           </view>
 
           <view v-if="matchLoading" class="soft-empty">
-            <text>正在计算匹配</text>
+            <text>AI匹配中，请稍后</text>
+          </view>
+          <view v-else-if="aiSummary && aiSummary.failed" class="soft-empty">
+            <text>AI匹配失败，请稍后重试</text>
           </view>
           <view v-else-if="matches.length === 0" class="soft-empty">
             <text>暂无匹配结果</text>
@@ -267,7 +270,10 @@ export default {
         return '';
       }
       if (this.aiSummary.failed) {
-        return '规则匹配';
+        return 'AI匹配失败';
+      }
+      if (this.aiSummary.enabled && this.aiSummary.requested > 0) {
+        return `AI已复核 ${this.aiSummary.reviewed}/${this.aiSummary.requested}`;
       }
       return `${this.matches.length} 条`;
     }
@@ -290,7 +296,10 @@ export default {
       this.loading = true;
       try {
         await this.loadItem();
-        await Promise.all([this.loadComments(), this.loadMatches()]);
+        if (this.item) {
+          this.loadComments();
+          this.loadMatches();
+        }
       } finally {
         this.loading = false;
       }
@@ -327,17 +336,27 @@ export default {
           url: `/items/${this.id}/matches`,
           data: {
             minScore: 20,
-            limit: 6,
-            useAI: false
+            limit: 3,
+            aiLimit: 3,
+            useAI: true
           }
         });
         const data = res.data || {};
-        this.matches = Array.isArray(data.matches) ? data.matches : [];
         this.aiSummary = data.aiSummary || null;
+        const aiReviewed = !!(this.aiSummary && this.aiSummary.enabled && this.aiSummary.reviewed > 0 && !this.aiSummary.failed);
+        this.matches = aiReviewed && Array.isArray(data.matches) ? data.matches : [];
       } catch (error) {
+        this.matches = [];
+        this.aiSummary = {
+          enabled: true,
+          failed: true,
+          requested: 0,
+          reviewed: 0,
+          message: error.data?.message || error.message || 'AI匹配失败'
+        };
         const statusCode = Number(error.statusCode || 0);
         if (statusCode !== 401 && statusCode !== 403) {
-          toastError(error, '匹配加载失败');
+          toastError(error, 'AI匹配失败');
         }
       } finally {
         this.matchLoading = false;
@@ -452,6 +471,17 @@ export default {
       return '匿名';
     },
     reasonsText(match) {
+      if (match.aiReview && match.aiReview.reviewed) {
+        const confidenceMap = {
+          high: '高置信',
+          medium: '中置信',
+          low: '低置信'
+        };
+        const verdict = match.aiReview.matched ? 'AI认为可能匹配' : 'AI认为关联较弱';
+        const confidence = confidenceMap[match.aiReview.confidence] || '低置信';
+        const reason = match.aiReview.reason || 'AI已完成复核';
+        return `${verdict}｜${confidence}｜${reason}`;
+      }
       if (match.reasons && match.reasons.length) {
         return match.reasons.join('、');
       }
