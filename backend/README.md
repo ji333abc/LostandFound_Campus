@@ -91,11 +91,11 @@ AI 相关（按需配置）：
 
 - `OPENAI_API_KEY`：OpenAI 接口密钥（图片识别能力）
 - `OPENAI_API_ENDPOINT`：OpenAI 接口地址
-- `OPENAI_MODEL`：OpenAI 模型名称
-- `MATCH_AI_PROVIDER`：匹配 AI 提供方（示例：`anthropic`）
+- `OPENAI_MODEL`：图片识别模型名称，需要选择支持图片/视觉/多模态的模型
+- `MATCH_AI_PROVIDER`：匹配 AI 协议，支持 `openai` 和 `anthropic`，默认推荐 `openai`
 - `MATCH_AI_API_KEY`：匹配 AI 接口密钥
-- `MATCH_AI_API_ENDPOINT`：匹配 AI 接口地址
-- `MATCH_AI_MODEL`：匹配 AI 模型名称
+- `MATCH_AI_API_ENDPOINT`：匹配 AI 接口地址；OpenAI 协议可填完整 `/v1/chat/completions` 或服务商 base URL，Anthropic 协议使用 `/v1/messages`
+- `MATCH_AI_MODEL`：匹配复核模型名称，只处理文本字段，选择低价文本模型即可
 - `MATCH_AI_MAX_TOKENS`：匹配 AI 返回长度上限
 
 ### 启动前最重要的一项
@@ -216,10 +216,10 @@ http://localhost:3000/api
 你也可以在项目根目录使用：
 
 ```bash
-node set-server-ip.js <host>
+node set-server-ip.js <host> [port]
 ```
 
-自动同步前后端相关地址。
+自动更新前端 `frontend/common/config.js` 中访问后端的地址。后端端口、监听地址和跨域配置请在 `backend/.env` 中手动修改。
 
 ---
 

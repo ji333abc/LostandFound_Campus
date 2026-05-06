@@ -54,7 +54,7 @@
 .
 ├─ frontend/               # 前端项目（uni-app）
 ├─ backend/                # 后端项目（Node.js + Express）
-├─ set-server-ip.js        # 一键同步前后端服务地址脚本
+├─ set-server-ip.js        # 一键切换前端访问后端地址脚本
 ├─ .gitignore
 └─ README.md
 ```
@@ -138,12 +138,15 @@ http://localhost:3000/api
 项目根目录提供了一个脚本，用于统一修改前后端的服务地址：
 
 ```bash
-node set-server-ip.js <host>
+node set-server-ip.js <host> [port]
 ```
 
-例如可以传入本地地址、局域网地址或域名。脚本会自动更新：
+`<host>` 是前端访问后端用的地址，例如本机调试用 `localhost`，手机真机调试用电脑在同一 Wi-Fi 下的 IPv4（如 `192.168.1.23`），公网部署用服务器 IP 或域名。
+
+脚本只会自动更新：
 - `frontend/common/config.js`（如不存在会从 `config.example.js` 自动创建）
-- `backend/.env` 或指定环境文件
+
+后端端口请与 `backend/.env` 中的 `PORT` 保持一致；如果需要修改后端监听端口、`HOST` 或跨域配置，请手动修改 `backend/.env` 后重启后端。
 
 ---
 
