@@ -152,7 +152,8 @@ export default {
 .auth-card {
   width: 100%;
   max-width: 720rpx;
-  padding: 42rpx 34rpx;
+  position: relative;
+  padding: 42rpx 34rpx 110rpx;
 }
 
 .auth-submit {
@@ -161,11 +162,14 @@ export default {
 }
 
 .auth-switch {
+  position: absolute;
+  right: 28rpx;
+  bottom: 24rpx;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 4rpx;
-  margin-top: 22rpx;
+  max-width: calc(100% - 56rpx);
   color: #60706a;
   font-size: 25rpx;
 }
