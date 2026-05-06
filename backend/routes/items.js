@@ -81,12 +81,8 @@ function normalizeAiReview(rawReview, candidateId) {
       numericScore = 50;
     }
   } else {
-    if (confidence === 'high' && numericScore < 80) {
-      numericScore = 85;
-      matched = true;
-    } else if (confidence === 'medium' && numericScore < 60) {
-      numericScore = 70;
-      matched = true;
+    if (numericScore >= 60) {
+      numericScore = 59;
     }
   }
 
@@ -147,14 +143,144 @@ function maskApiEndpoint(endpoint) {
   }
 }
 
+function extractAiTextContent(content) {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => {
+        if (typeof item === 'string') {
+          return item;
+        }
+        if (item && typeof item.text === 'string') {
+          return item.text;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  return '';
+}
+
+function buildMatchAiRequestBody(provider, model, prompt, maxTokens, temperature) {
+  const systemPrompt = '你是谨慎的校园失物匹配助手，只输出合法 JSON。';
+
+  if (provider === 'openai') {
+    return {
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      messages: [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    };
+  }
+
+  if (provider === 'anthropic') {
+    return {
+      model,
+      max_tokens: maxTokens,
+      stream: false,
+      temperature,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    };
+  }
+
+  throw new Error(`暂不支持的匹配AI协议: ${provider}`);
+}
+
+function extractMatchAiResponseText(provider, data) {
+  if (provider === 'openai') {
+    const choice = data.choices?.[0] || {};
+    const message = choice.message || {};
+    return extractAiTextContent(message.content) ||
+      extractAiTextContent(message.reasoning_content) ||
+      extractAiTextContent(choice.text) ||
+      extractAiTextContent(data.output_text) ||
+      extractAiTextContent(data.content);
+  }
+
+  if (provider === 'anthropic') {
+    return extractAiTextContent(data.content) ||
+      extractAiTextContent(data.choices?.[0]?.message?.content);
+  }
+
+  return '';
+}
+
+function normalizeMatchAiEndpoint(provider, endpointInput) {
+  const defaultEndpoint = provider === 'openai'
+    ? 'https://api.openai.com/v1/chat/completions'
+    : '';
+  const raw = String(endpointInput || defaultEndpoint).trim().replace(/\/+$/, '');
+
+  if (!raw) return '';
+
+  if (provider === 'openai') {
+    if (/\/chat\/completions$/i.test(raw)) return raw;
+    if (/\/v1$/i.test(raw)) return `${raw}/chat/completions`;
+    return `${raw}/v1/chat/completions`;
+  }
+
+  if (provider === 'anthropic') {
+    if (/\/messages$/i.test(raw)) return raw;
+    if (/\/v1$/i.test(raw)) return `${raw}/messages`;
+    return `${raw}/v1/messages`;
+  }
+
+  return raw;
+}
+
+function buildEmptyAiContentMessage(provider, apiEndpoint, data) {
+  const topLevelKeys = data && typeof data === 'object'
+    ? Object.keys(data).slice(0, 8).join(',')
+    : typeof data;
+  const firstChoice = data?.choices?.[0] || {};
+  const choiceKeys = firstChoice && typeof firstChoice === 'object'
+    ? Object.keys(firstChoice).slice(0, 8).join(',')
+    : '';
+  const messageKeys = firstChoice.message && typeof firstChoice.message === 'object'
+    ? Object.keys(firstChoice.message).slice(0, 8).join(',')
+    : '';
+
+  return `匹配AI返回内容为空: provider=${provider}, endpoint=${maskApiEndpoint(apiEndpoint)}, keys=${topLevelKeys}, choiceKeys=${choiceKeys}, messageKeys=${messageKeys}`;
+}
+
 async function runAiBatchReview(sourceItem, candidates) {
-  const provider = String(process.env.MATCH_AI_PROVIDER || 'anthropic').toLowerCase();
+  const provider = String(process.env.MATCH_AI_PROVIDER || 'openai').trim().toLowerCase();
   const apiKey = process.env.MATCH_AI_API_KEY;
-  const apiEndpoint = process.env.MATCH_AI_API_ENDPOINT;
   const model = process.env.MATCH_AI_MODEL;
   const maxTokens = Math.max(256, Math.min(4000, Number(process.env.MATCH_AI_MAX_TOKENS) || 1200));
   const temperature = Math.max(0, Math.min(1, Number(process.env.MATCH_AI_TEMPERATURE) || 0.2));
   const timeoutMs = Math.max(3000, Math.min(60000, Number(process.env.MATCH_AI_TIMEOUT_MS) || 15000));
+
+  if (!['openai', 'anthropic'].includes(provider)) {
+    return {
+      enabled: false,
+      reviewedCount: 0,
+      failed: true,
+      message: `暂不支持的匹配AI协议: ${provider}`
+    };
+  }
+
+  const apiEndpoint = normalizeMatchAiEndpoint(provider, process.env.MATCH_AI_API_ENDPOINT);
 
   if (!apiKey || !apiEndpoint || !model) {
     return {
@@ -165,15 +291,6 @@ async function runAiBatchReview(sourceItem, candidates) {
     };
   }
 
-  if (provider !== 'anthropic') {
-    return {
-      enabled: false,
-      reviewedCount: 0,
-      failed: true,
-      message: `暂不支持的匹配AI协议: ${provider}`
-    };
-  }
-
   try {
     new URL(apiEndpoint);
   } catch (error) {
@@ -181,6 +298,7 @@ async function runAiBatchReview(sourceItem, candidates) {
   }
 
   const prompt = buildAiBatchReviewPrompt(sourceItem, candidates);
+  const requestBody = buildMatchAiRequestBody(provider, model, prompt, maxTokens, temperature);
   let response;
 
   try {
@@ -191,19 +309,7 @@ async function runAiBatchReview(sourceItem, candidates) {
         Authorization: `Bearer ${apiKey}`
       },
       signal: AbortSignal.timeout(timeoutMs),
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        stream: false,
-        temperature,
-        system: '你是谨慎的校园失物匹配助手，只输出合法 JSON。',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
+      body: JSON.stringify(requestBody)
     });
   } catch (error) {
     const causeMessage = error?.cause?.message || error?.message || '未知网络错误';
@@ -217,12 +323,11 @@ async function runAiBatchReview(sourceItem, candidates) {
   }
 
   const data = await response.json();
-  const content = Array.isArray(data.content)
-    ? data.content
-        .map((item) => (item && item.type === 'text' ? item.text : ''))
-        .filter(Boolean)
-        .join('\n')
-    : '';
+  const content = extractMatchAiResponseText(provider, data);
+  if (!content) {
+    throw new Error(buildEmptyAiContentMessage(provider, apiEndpoint, data));
+  }
+
   const parsed = JSON.parse(extractJsonText(content));
   const resultList = Array.isArray(parsed?.results) ? parsed.results : [];
   const reviewMap = {};
@@ -243,14 +348,20 @@ async function runAiBatchReview(sourceItem, candidates) {
   };
 }
 
-function buildMatchNotificationMessage(sourceItem, matchedItem, score, level) {
+function buildMatchNotificationMessage(sourceItem, matchedItem, score, level, aiReview) {
   const isLostOwner = sourceItem.type === 'lost';
   const title = isLostOwner
     ? '有1件新发布的招领物品可能是你遗失的物品'
     : '有1条新发布的失物信息可能与你的招领记录匹配';
+  const confidenceText = {
+    high: '高置信',
+    medium: '中置信',
+    low: '低置信'
+  }[aiReview?.confidence] || '低置信';
+  const reason = aiReview?.reason ? `理由：${aiReview.reason}` : '请进入详情页结合实物细节人工确认。';
   const content = isLostOwner
-    ? `新发布的“${matchedItem.title}”可能与你的“${sourceItem.title}”相关（匹配分 ${score}）。`
-    : `新发布的“${matchedItem.title}”可能与你发布的“${sourceItem.title}”相关（匹配分 ${score}）。`;
+    ? `新发布的“${matchedItem.title}”可能与你的“${sourceItem.title}”相关（AI匹配分 ${score}，${confidenceText}）。${reason}`
+    : `新发布的“${matchedItem.title}”可能与你发布的“${sourceItem.title}”相关（AI匹配分 ${score}，${confidenceText}）。${reason}`;
 
   return {
     title,
@@ -262,6 +373,10 @@ function buildMatchNotificationMessage(sourceItem, matchedItem, score, level) {
 async function createMatchNotificationsForNewItem(newItem) {
   const oppositeType = newItem.type === 'lost' ? 'found' : 'lost';
   const candidateCreatedAt = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+  const ruleCandidateLimit = 10;
+  const notificationLimit = 5;
+  const ruleMinScore = 40;
+  const aiMinScore = 60;
 
   const candidates = await Item.find({
     _id: { $ne: newItem._id },
@@ -270,24 +385,54 @@ async function createMatchNotificationsForNewItem(newItem) {
     createdAt: { $gte: candidateCreatedAt }
   }).limit(200);
 
-  const matches = candidates
+  const ruleMatches = candidates
     .filter((candidate) => String(candidate.owner) !== String(newItem.owner))
     .map((candidate) => {
-      const result = scoreMatch(candidate, newItem);
+      const result = scoreMatch(newItem, candidate);
       return {
         item: candidate,
-        score: result.score,
-        level: result.level
+        ruleScore: result.score,
+        ruleLevel: result.level
       };
     })
-    .filter((entry) => entry.score >= 50)
+    .filter((entry) => entry.ruleScore >= ruleMinScore)
+    .sort((a, b) => b.ruleScore - a.ruleScore)
+    .slice(0, ruleCandidateLimit);
+
+  if (!ruleMatches.length) {
+    return;
+  }
+
+  const aiResult = await runAiBatchReview(newItem, ruleMatches.map((entry) => entry.item));
+  if (!aiResult.enabled || aiResult.failed) {
+    console.warn(`匹配AI通知未生成: ${aiResult.message || 'AI复核失败'}`);
+    return;
+  }
+
+  const reviewMap = aiResult.reviewMap || {};
+  const matches = ruleMatches
+    .map((entry) => {
+      const review = reviewMap[String(entry.item._id)];
+      if (!review || !review.matched || review.score < aiMinScore) {
+        return null;
+      }
+
+      return {
+        item: entry.item,
+        ruleScore: entry.ruleScore,
+        score: review.score,
+        level: getMatchLevel(review.score),
+        aiReview: review
+      };
+    })
+    .filter(Boolean)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
+    .slice(0, notificationLimit);
 
   for (const entry of matches) {
     const sourceItem = entry.item;
     const matchedItem = newItem;
-    const message = buildMatchNotificationMessage(sourceItem, matchedItem, entry.score, entry.level);
+    const message = buildMatchNotificationMessage(sourceItem, matchedItem, entry.score, entry.level, entry.aiReview);
 
     await Notification.updateOne(
       {
@@ -353,7 +498,7 @@ function getCategoryScore(sourceItem, candidate, reasons) {
   if (!sourceItem.category || !candidate.category) return 0;
   if (sourceItem.category === candidate.category) {
     reasons.push(`分类一致（${sourceItem.category}）`);
-    return 20;
+    return 15;
   }
   return 0;
 }
@@ -362,14 +507,14 @@ function getTitleScore(sourceItem, candidate, reasons) {
   const similarity = calcTextSimilarity(sourceItem.title, candidate.title);
   if (similarity >= 0.6) {
     reasons.push('标题关键词高度相似');
-    return 20;
+    return 28;
   }
   if (similarity >= 0.35) {
     reasons.push('标题关键词有一定相似度');
-    return 12;
+    return 17;
   }
   if (similarity >= 0.2) {
-    return 6;
+    return 9;
   }
   return 0;
 }
@@ -378,14 +523,14 @@ function getDescriptionScore(sourceItem, candidate, reasons) {
   const similarity = calcTextSimilarity(sourceItem.description, candidate.description);
   if (similarity >= 0.5) {
     reasons.push('描述内容高度相似');
-    return 20;
+    return 34;
   }
   if (similarity >= 0.28) {
     reasons.push('描述内容有一定相似度');
-    return 12;
+    return 20;
   }
   if (similarity >= 0.15) {
-    return 6;
+    return 9;
   }
   return 0;
 }
@@ -394,14 +539,14 @@ function getLocationScore(sourceItem, candidate, reasons) {
   const similarity = calcTextSimilarity(sourceItem.location, candidate.location);
   if (similarity >= 0.6) {
     reasons.push('地点信息高度接近');
-    return 20;
+    return 15;
   }
   if (similarity >= 0.3) {
     reasons.push('地点信息有一定重合');
-    return 12;
+    return 9;
   }
   if (similarity >= 0.15) {
-    return 6;
+    return 4;
   }
   return 0;
 }
@@ -414,21 +559,21 @@ function getTimeScore(sourceItem, candidate, reasons) {
 
   if (diffDays <= 1) {
     reasons.push('时间非常接近（1天内）');
-    return 20;
+    return 8;
   }
   if (diffDays <= 3) {
     reasons.push('时间较接近（3天内）');
-    return 16;
+    return 6;
   }
   if (diffDays <= 7) {
     reasons.push('时间有一定接近（7天内）');
-    return 12;
+    return 4;
   }
   if (diffDays <= 15) {
-    return 8;
+    return 2;
   }
   if (diffDays <= 30) {
-    return 4;
+    return 1;
   }
   return 0;
 }
@@ -504,11 +649,9 @@ router.post('/', auth, async (req, res) => {
       owner: req.user.id
     });
 
-    try {
-      await createMatchNotificationsForNewItem(item);
-    } catch (notifyError) {
-      console.error('生成匹配提醒失败:', notifyError.message);
-    }
+    createMatchNotificationsForNewItem(item).catch((notifyError) => {
+      console.error('生成AI匹配提醒失败:', notifyError.message);
+    });
 
     res.json({ message: '发布成功', data: item });
   } catch (err) {
@@ -591,7 +734,7 @@ router.get('/:id/matches', auth, async (req, res) => {
       .limit(200)
       .populate('owner', 'username');
 
-    const matches = candidates
+    let matches = candidates
       .map((candidate) => {
         const result = scoreMatch(sourceItem, candidate);
         return {
@@ -622,24 +765,46 @@ router.get('/:id/matches', auth, async (req, res) => {
     };
 
     if (useAI && matches.length > 0) {
-      const aiCandidates = matches.slice(0, Math.min(aiLimit, matches.length)).map((entry) => entry.item);
+      const requestedCount = Math.min(aiLimit, matches.length);
+      const aiCandidates = matches.slice(0, requestedCount).map((entry) => entry.item);
       try {
         const aiResult = await runAiBatchReview(sourceItem, aiCandidates);
         const reviewMap = aiResult.reviewMap || {};
 
-        matches.forEach((entry) => {
+        const aiReviewedMatches = matches.slice(0, requestedCount).map((entry) => {
           const candidateId = String(entry.item._id);
-          if (reviewMap[candidateId]) {
-            entry.aiReview = {
-              enabled: true,
-              ...reviewMap[candidateId]
-            };
+          const review = reviewMap[candidateId];
+          if (!review) {
+            return null;
           }
-        });
+
+          return {
+            ...entry,
+            ruleScore: entry.score,
+            ruleLevel: entry.level,
+            ruleReasons: entry.reasons,
+            ruleBreakdown: entry.breakdown,
+            score: review.score,
+            level: getMatchLevel(review.score),
+            reasons: review.reason ? [review.reason] : ['AI已完成复核'],
+            scoreSource: 'ai',
+            aiReview: {
+              enabled: true,
+              ...review
+            }
+          };
+        }).filter(Boolean);
+
+        if (!aiResult.failed && aiReviewedMatches.length > 0) {
+          matches = aiReviewedMatches.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return new Date(b.item.createdAt).getTime() - new Date(a.item.createdAt).getTime();
+          });
+        }
 
         aiSummary = {
           enabled: aiResult.enabled,
-          requested: Math.min(aiLimit, matches.length),
+          requested: requestedCount,
           reviewed: aiResult.reviewedCount || 0,
           failed: aiResult.failed || false,
           message: aiResult.message || '',
@@ -808,5 +973,3 @@ router.delete('/:id/comments/:commentId', auth, async (req, res) => {
 });
 
 module.exports = router;
-
-
