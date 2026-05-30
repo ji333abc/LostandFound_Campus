@@ -4,6 +4,7 @@ const Item = require('../models/Item');
 const Comment = require('../models/Comment');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const MatchCache = require('../models/MatchCache');
 const auth = require('../middlewares/auth');
 
 const router = express.Router();
@@ -19,6 +20,22 @@ function parseBoolean(value, defaultValue = false) {
   if (typeof value === 'boolean') return value;
   const normalized = String(value).toLowerCase();
   return ['1', 'true', 'yes', 'on'].includes(normalized);
+}
+
+function getMatchAiIdentity() {
+  return {
+    provider: String(process.env.MATCH_AI_PROVIDER || 'openai').trim().toLowerCase(),
+    model: String(process.env.MATCH_AI_MODEL || '').trim()
+  };
+}
+
+function getMatchCacheTtlMs() {
+  const days = Math.max(1, Math.min(90, Number(process.env.MATCH_CACHE_TTL_DAYS) || 7));
+  return days * 24 * 60 * 60 * 1000;
+}
+
+function sameTime(a, b) {
+  return new Date(a).getTime() === new Date(b).getTime();
 }
 
 function formatDateForAI(value) {
@@ -264,9 +281,8 @@ function buildEmptyAiContentMessage(provider, apiEndpoint, data) {
 }
 
 async function runAiBatchReview(sourceItem, candidates) {
-  const provider = String(process.env.MATCH_AI_PROVIDER || 'openai').trim().toLowerCase();
+  const { provider, model } = getMatchAiIdentity();
   const apiKey = process.env.MATCH_AI_API_KEY;
-  const model = process.env.MATCH_AI_MODEL;
   const maxTokens = Math.max(256, Math.min(4000, Number(process.env.MATCH_AI_MAX_TOKENS) || 1200));
   const temperature = Math.max(0, Math.min(1, Number(process.env.MATCH_AI_TEMPERATURE) || 0.2));
   const timeoutMs = Math.max(3000, Math.min(60000, Number(process.env.MATCH_AI_TIMEOUT_MS) || 15000));
@@ -346,6 +362,104 @@ async function runAiBatchReview(sourceItem, candidates) {
     provider,
     reviewMap
   };
+}
+
+async function loadCachedAiReviews(sourceItem, entries, provider, model) {
+  if (!model || entries.length === 0) {
+    return { reviewMap: {}, hitIds: new Set() };
+  }
+
+  const candidateIds = entries.map((entry) => entry.item._id);
+  const rows = await MatchCache.find({
+    sourceItem: sourceItem._id,
+    candidateItem: { $in: candidateIds },
+    provider,
+    model,
+    expiresAt: { $gt: new Date() }
+  });
+
+  const entryMap = new Map(entries.map((entry) => [String(entry.item._id), entry]));
+  const reviewMap = {};
+  const hitIds = new Set();
+
+  rows.forEach((row) => {
+    const candidateId = String(row.candidateItem);
+    const entry = entryMap.get(candidateId);
+    if (!entry) return;
+    if (!sameTime(row.sourceUpdatedAt, sourceItem.updatedAt)) return;
+    if (!sameTime(row.candidateUpdatedAt, entry.item.updatedAt)) return;
+
+    reviewMap[candidateId] = {
+      candidateId,
+      matched: row.matched,
+      score: row.aiScore,
+      confidence: row.confidence,
+      reason: row.reason,
+      cached: true
+    };
+    hitIds.add(candidateId);
+  });
+
+  return { reviewMap, hitIds };
+}
+
+async function saveAiReviewCache(sourceItem, entries, provider, model, reviewMap) {
+  if (!model || entries.length === 0) return;
+
+  const expiresAt = new Date(Date.now() + getMatchCacheTtlMs());
+  await Promise.all(entries.map((entry) => {
+    const candidateId = String(entry.item._id);
+    const review = reviewMap[candidateId];
+    if (!review) return Promise.resolve();
+
+    return MatchCache.updateOne(
+      {
+        sourceItem: sourceItem._id,
+        candidateItem: entry.item._id,
+        provider,
+        model
+      },
+      {
+        $set: {
+          ruleScore: entry.score,
+          aiScore: review.score,
+          matched: review.matched,
+          confidence: review.confidence,
+          reason: review.reason || '',
+          sourceUpdatedAt: sourceItem.updatedAt,
+          candidateUpdatedAt: entry.item.updatedAt,
+          expiresAt
+        }
+      },
+      { upsert: true }
+    );
+  }));
+}
+
+function applyAiReviewsToMatches(entries, reviewMap) {
+  return entries.map((entry) => {
+    const candidateId = String(entry.item._id);
+    const review = reviewMap[candidateId];
+    if (!review) {
+      return null;
+    }
+
+    return {
+      ...entry,
+      ruleScore: entry.score,
+      ruleLevel: entry.level,
+      ruleReasons: entry.reasons,
+      ruleBreakdown: entry.breakdown,
+      score: review.score,
+      level: getMatchLevel(review.score),
+      reasons: review.reason ? [review.reason] : ['AI已完成复核'],
+      scoreSource: review.cached ? 'ai-cache' : 'ai',
+      aiReview: {
+        enabled: true,
+        ...review
+      }
+    };
+  }).filter(Boolean);
 }
 
 function buildMatchNotificationMessage(sourceItem, matchedItem, score, level, aiReview) {
@@ -766,34 +880,33 @@ router.get('/:id/matches', auth, async (req, res) => {
 
     if (useAI && matches.length > 0) {
       const requestedCount = Math.min(aiLimit, matches.length);
-      const aiCandidates = matches.slice(0, requestedCount).map((entry) => entry.item);
+      const requestedEntries = matches.slice(0, requestedCount);
+      const { provider, model } = getMatchAiIdentity();
       try {
-        const aiResult = await runAiBatchReview(sourceItem, aiCandidates);
-        const reviewMap = aiResult.reviewMap || {};
+        const cached = await loadCachedAiReviews(sourceItem, requestedEntries, provider, model);
+        const missEntries = requestedEntries.filter((entry) => !cached.hitIds.has(String(entry.item._id)));
+        const missCandidates = missEntries.map((entry) => entry.item);
+        let aiResult = {
+          enabled: true,
+          reviewedCount: 0,
+          failed: false,
+          message: '',
+          model,
+          provider,
+          reviewMap: {}
+        };
 
-        const aiReviewedMatches = matches.slice(0, requestedCount).map((entry) => {
-          const candidateId = String(entry.item._id);
-          const review = reviewMap[candidateId];
-          if (!review) {
-            return null;
-          }
+        if (missCandidates.length > 0) {
+          aiResult = await runAiBatchReview(sourceItem, missCandidates);
+          await saveAiReviewCache(sourceItem, missEntries, aiResult.provider, aiResult.model, aiResult.reviewMap || {});
+        }
 
-          return {
-            ...entry,
-            ruleScore: entry.score,
-            ruleLevel: entry.level,
-            ruleReasons: entry.reasons,
-            ruleBreakdown: entry.breakdown,
-            score: review.score,
-            level: getMatchLevel(review.score),
-            reasons: review.reason ? [review.reason] : ['AI已完成复核'],
-            scoreSource: 'ai',
-            aiReview: {
-              enabled: true,
-              ...review
-            }
-          };
-        }).filter(Boolean);
+        const reviewMap = {
+          ...cached.reviewMap,
+          ...(aiResult.reviewMap || {})
+        };
+
+        const aiReviewedMatches = applyAiReviewsToMatches(requestedEntries, reviewMap);
 
         if (!aiResult.failed && aiReviewedMatches.length > 0) {
           matches = aiReviewedMatches.sort((a, b) => {
@@ -805,11 +918,13 @@ router.get('/:id/matches', auth, async (req, res) => {
         aiSummary = {
           enabled: aiResult.enabled,
           requested: requestedCount,
-          reviewed: aiResult.reviewedCount || 0,
+          reviewed: Object.keys(reviewMap).length,
           failed: aiResult.failed || false,
           message: aiResult.message || '',
           model: aiResult.model || '',
-          provider: aiResult.provider || ''
+          provider: aiResult.provider || '',
+          cacheHits: cached.hitIds.size,
+          cacheMisses: missEntries.length
         };
       } catch (error) {
         console.error('AI匹配复核失败:', error.message);

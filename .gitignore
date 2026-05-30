@@ -43,6 +43,7 @@ backend/1.txt
 .crush.json
 .claude/
 AGENTS.md
+答辩方案.md
 # Temporary files
 *.tmp
 *.temp
